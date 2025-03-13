@@ -14,6 +14,9 @@ from python_on_whales import DockerClient
 from python_on_whales.exceptions import DockerException
 
 from common.bootstrap.configuration.configuration import Configuration
+from common.bootstrap.configuration.pipeline.embedding.vector_store.vector_store_configuration import (
+    PGVectorConfiguration,
+)
 
 
 class Logger(object):
@@ -109,7 +112,7 @@ class CommandRunner:
         print(self.configuration.model_dump_json(indent=4))
 
         self.configuration.metadata.build_name = build_name
-        self._export_port_configuration()
+        self._export_configuration()
 
     def is_port_in_use(self, port: int) -> bool:
         """Check if the port is in use.
@@ -195,7 +198,7 @@ class CommandRunner:
         secrets_filepath = f"configurations/secrets.{environment}.env"
         return configuration_filepath, secrets_filepath
 
-    def _export_port_configuration(self):
+    def _export_configuration(self):
         """Export the port configuration.
 
         Export the port configuration to the environment variables.
@@ -207,6 +210,16 @@ class CommandRunner:
         os.environ["RAG__VECTOR_STORE__PORT_REST"] = str(
             vector_store_configuration.ports.rest
         )
+        if isinstance(vector_store_configuration, PGVectorConfiguration):
+            os.environ["RAG__VECTOR_STORE__DATABASE_NAME"] = str(
+                vector_store_configuration.database_name
+            )
+            os.environ["RAG__VECTOR_STORE__USERNAME"] = str(
+                vector_store_configuration.secrets.username.get_secret_value()
+            )
+            os.environ["RAG__VECTOR_STORE__PASSWORD"] = str(
+                vector_store_configuration.secrets.password.get_secret_value()
+            )
 
         langfuse_configuration = (
             self.configuration.pipeline.augmentation.langfuse
