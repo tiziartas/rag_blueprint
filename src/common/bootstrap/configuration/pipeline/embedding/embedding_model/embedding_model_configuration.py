@@ -34,9 +34,7 @@ class OpenAIEmbeddingModelSecrets(BaseSettings):
         extra="ignore",
     )
 
-    api_key: Optional[SecretStr] = Field(
-        None, description="API key for the model"
-    )
+    api_key: SecretStr = Field(..., description="API key for the model")
 
 
 class VoyageSecrets(BaseSettings):
@@ -47,9 +45,7 @@ class VoyageSecrets(BaseSettings):
         extra="ignore",
     )
 
-    api_key: Optional[SecretStr] = Field(
-        None, description="API key for the model"
-    )
+    api_key: SecretStr = Field(..., description="API key for the model")
 
 
 # Configuration

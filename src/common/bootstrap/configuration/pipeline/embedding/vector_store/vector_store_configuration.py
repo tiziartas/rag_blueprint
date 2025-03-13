@@ -1,6 +1,6 @@
 from abc import ABC
 from enum import Enum
-from typing import Literal, Optional, Union
+from typing import Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings
@@ -24,11 +24,11 @@ class PGVectorStoreSecrets(BaseSettings):
         extra="ignore",
     )
 
-    username: Optional[SecretStr] = Field(
-        None, description="Username for the vector store."
+    username: SecretStr = Field(
+        ..., description="Username for the vector store."
     )
-    password: Optional[SecretStr] = Field(
-        None, description="Password for the vector store."
+    password: SecretStr = Field(
+        ..., description="Password for the vector store."
     )
 
 
