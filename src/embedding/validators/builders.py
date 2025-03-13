@@ -1,13 +1,16 @@
 from chromadb.api import ClientAPI as ChromaClient
 from injector import inject
+from psycopg2.extensions import connection as PGVectorClient
 from qdrant_client import QdrantClient
 
 from common.bootstrap.configuration.pipeline.embedding.vector_store.vector_store_configuration import (
     ChromaConfiguration,
+    PGVectorConfiguration,
     QDrantConfiguration,
 )
 from embedding.validators.vector_store_validators import (
     ChromaVectorStoreValidator,
+    PGVectorStoreValidator,
     QdrantVectorStoreValidator,
 )
 
@@ -61,4 +64,30 @@ class ChromaVectorStoreValidatorBuilder:
         """
         return ChromaVectorStoreValidator(
             configuration=configuration, chroma_client=chroma_client
+        )
+
+
+class PGVectorStoreValidatorBuilder:
+    """Builder for creating PGVector store validator instances.
+
+    Provides factory method to create configured PostgresVectorStoreValidator
+    objects with required components.
+    """
+
+    @staticmethod
+    @inject
+    def build(
+        configuration: PGVectorConfiguration, postgres_client: PGVectorClient
+    ) -> PGVectorStoreValidator:
+        """Create configured PGVector validator instance.
+
+        Args:
+            configuration: Settings for vector store
+            postgres_client: Client for Postgres interactions
+
+        Returns:
+            PGVectorStoreValidator: Configured validator instance
+        """
+        return PGVectorStoreValidator(
+            configuration=configuration, postgres_client=postgres_client
         )

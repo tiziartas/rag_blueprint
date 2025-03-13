@@ -1,4 +1,3 @@
-version: '3'
 name: rag
 services:
   # RAG services
@@ -55,6 +54,17 @@ services:
     restart: unless-stopped
     volumes:
       - ./.docker-data/chroma:/chroma/chroma/
+
+  pgvector:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: example_db
+    ports:
+      - "6000:5432"
+    volumes:
+      - ./.docker-data/pgdata:/var/lib/postgresql/data
 
   langfuse-db:
     build:
