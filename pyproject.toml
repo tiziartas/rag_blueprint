@@ -133,6 +133,7 @@ dependencies = [
     "xxhash==3.5.0",
     "yarl==1.9.4",
     "zipp==3.18.1",
+    "llama-index-vector-stores-postgres>=0.2.6",
 ]
 
 [build-system]

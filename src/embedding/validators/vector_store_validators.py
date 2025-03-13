@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 
 from chromadb.api import ClientAPI as ChromaClient
+from psycopg2.extensions import connection as PGVectorClient
 from qdrant_client import QdrantClient
 
 from common.bootstrap.configuration.pipeline.embedding.vector_store.vector_store_configuration import (
     ChromaConfiguration,
+    PGVectorConfiguration,
     QDrantConfiguration,
 )
 from common.exceptions import CollectionExistsException
@@ -102,3 +104,44 @@ class ChromaVectorStoreValidator(VectorStoreValidator):
         collection_name = self.configuration.collection_name
         if collection_name in self.chroma_client.list_collections():
             raise CollectionExistsException(collection_name)
+
+
+class PGVectorStoreValidator(VectorStoreValidator):
+    """Validator for Postgres vector store configuration.
+
+    Validates the existence of a table (treated as a collection) in the Postgres
+    vector store backend.
+
+    Attributes:
+        configuration: Settings for vector store
+        postgres_client: Postgres connection
+    """
+
+    def __init__(
+        self,
+        configuration: PGVectorConfiguration,
+        postgres_client: PGVectorClient,
+    ):
+        self.configuration = configuration
+        self.postgres_client = postgres_client
+
+    def validate(self) -> None:
+        """
+        Validate the PGVector settings.
+        """
+        self.validate_collection()
+
+    def validate_collection(self) -> None:
+        """
+        Validate PGVector table existence.
+
+        Raises:
+            CollectionExistsException: If the table (collection) already exists.
+        """
+        collection_name = self.configuration.collection_name
+        with self.postgres_client.cursor() as cursor:
+            query = f"SELECT to_regclass('data_{collection_name}');"
+            cursor.execute(query)
+            result = cursor.fetchone()[0]
+            if result is not None:
+                raise CollectionExistsException(collection_name)

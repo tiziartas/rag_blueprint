@@ -1,10 +1,12 @@
 from injector import inject
 from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 
 from common.bootstrap.configuration.pipeline.embedding.vector_store.vector_store_configuration import (
     ChromaConfiguration,
+    PGVectorConfiguration,
     QDrantConfiguration,
 )
 
@@ -60,4 +62,36 @@ class ChromaStoreBuilder:
             host=configuration.host,
             port=str(configuration.ports.rest),
             collection_name=configuration.collection_name,
+        )
+
+
+class PGVectorStoreBuilder:
+    """
+    Builder for creating configured PGVector vector store instances.
+
+    Provides factory method to create PGVectorStore with client and collection settings.
+    """
+
+    @staticmethod
+    @inject
+    def build(
+        configuration: PGVectorConfiguration,
+    ):
+        """
+        Creates a configured PGVector vector store instance.
+
+        Args:
+            configuration: PGVector settings including collection name.
+
+        Returns:
+            PGVectorStore: Configured PGVector instance.
+        """
+        return PGVectorStore.from_params(
+            database=configuration.database_name,
+            host=configuration.host,
+            password=configuration.secrets.password.get_secret_value(),
+            port=configuration.ports.rest,
+            user=configuration.secrets.username.get_secret_value(),
+            table_name=configuration.collection_name,
+            embed_dim=configuration.embed_dim,
         )

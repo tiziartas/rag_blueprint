@@ -271,7 +271,7 @@ class ChromaVectorStoreValidator(VectorStoreValidator):
 
 ## Step 10: Vector Store Validator Builder
 
-For the above vector store validator, add a builder to [vector_store_builders.py](https://github.com/feld-m/rag_blueprint/blob/main/src/embedding/validators/builders.py):
+For the above vector store validator, add a builder to [validators/builders.py](https://github.com/feld-m/rag_blueprint/blob/main/src/embedding/validators/builders.py):
 
 ```py
 from common.bootstrap.configuration.pipeline.embedding.vector_store.vector_store_configuration import (

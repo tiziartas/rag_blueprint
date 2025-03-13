@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable, Literal, Optional, Union
+from typing import Callable, Literal, Union
 
 from pydantic import ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings
@@ -28,8 +28,8 @@ class OpenAILLMSecrets(BaseSettings):
         extra="ignore",
     )
 
-    api_key: Optional[SecretStr] = Field(
-        None, description="API key for the model provider."
+    api_key: SecretStr = Field(
+        ..., description="API key for the model provider."
     )
 
 
@@ -41,11 +41,11 @@ class OpenAILikeLLMSecrets(OpenAILLMSecrets):
         extra="ignore",
     )
 
-    api_key: Optional[SecretStr] = Field(
-        None, description="API key for the model provider."
+    api_key: SecretStr = Field(
+        ..., description="API key for the model provider."
     )
-    api_base: Optional[SecretStr] = Field(
-        None, description="Base URL of the model provider."
+    api_base: SecretStr = Field(
+        ..., description="Base URL of the model provider."
     )
 
 
