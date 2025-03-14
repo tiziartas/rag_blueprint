@@ -7,8 +7,8 @@ The RAG blueprint project is a Retrieval-Augmented Generation system that integr
 
 | Data Source | Description |
 |-------------|-------------|
-| Confluence | Enterprise wiki and knowledge base integration |
-| Notion | Workspace and document management integration |
+| [Confluence](https://www.atlassian.com/software/confluence?gclsrc=aw.ds&&campaign=19280571316&adgroup=144874483655&targetid=kwd-22737151&matchtype=e&network=g&device=c&device_model=&creative=665271020076&keyword=confluence&placement=&target=&ds_eid=700000001542923&ds_e1=GOOGLE&gad_source=1&gclid=CjwKCAjwp8--BhBREiwAj7og1-IRQKLqpRA6GsxWCxP79pA8N6llomLslpQ-rTMkvMwKIIdA1Zq3uBoCpjYQAvD_BwE) | Enterprise wiki and knowledge base integration |
+| [Notion](https://www.notion.com/) | Workspace and document management integration |
 | PDF | PDF document processing and text extraction |
 
 Check how to configure datasources [here](how_to/how_to_configure/#datasource-configuration).
@@ -37,8 +37,9 @@ Check how to configure LLM [here](how_to/how_to_configure/#llm-configuration).
 
 | Vector Store | Description |
 |--------------|-------------|
-| Qdrant | High-performance vector similarity search engine |
-| Chroma |  Lightweight embedded vector database |
+| [Qdrant](https://qdrant.tech/) | High-performance vector similarity search engine |
+| [Chroma](https://www.trychroma.com/) |  Lightweight embedded vector database |
+| [PGVector](https://github.com/pgvector) | Postgres extension for embedding data support |
 
 
 Check how to configure vector store [here](how_to/how_to_configure/#vector-store-configuration).
