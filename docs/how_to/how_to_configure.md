@@ -230,6 +230,7 @@ Currently, the following vector stores are supported:
 class VectorStoreName(str, Enum):
     QDRANT = "qdrant"
     CHROMA = "chroma"
+    PGVECTOR = "pgvector"
 ```
 
 To configure the vector store, update the following entry:

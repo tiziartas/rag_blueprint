@@ -43,7 +43,8 @@ It comes with built-in monitoring and observability tools for better troubleshoo
 ---
 
 ### Vector Stores
-[Qdrant](https://qdrant.tech/) • [Chroma](https://www.trychroma.com/)
+[Qdrant](https://qdrant.tech/) • [Chroma](https://www.trychroma.com/) • [PGVector](https://github.com/pgvector)
+
 
 ---
 

@@ -77,8 +77,6 @@ class OpenAILLMConfiguration(LLMConfiguration):
 
 `builder`: Specifies a callable (e.g., `OpenAIBuilder.build`) responsible for initializing the LLM instance.
 
-Add configuration to `AVAILABLE_LLMS` static
-
 **Example JSON Configuration**
 
 ```json
