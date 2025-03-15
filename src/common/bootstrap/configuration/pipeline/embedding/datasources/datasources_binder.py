@@ -71,14 +71,9 @@ class NotionDatasourceBinder(BaseBinder):
 
     def _bind_notion_cofuguration(self) -> None:
         """Bind the Notion datasource configuration."""
-        notion_configuration = [
-            configuration
-            for configuration in self.configuration.pipeline.embedding.datasources
-            if isinstance(configuration, NotionDatasourceConfiguration)
-        ][0]
         self.binder.bind(
             NotionDatasourceConfiguration,
-            to=notion_configuration,
+            to=self.configuration,
             scope=singleton,
         )
 
@@ -143,14 +138,9 @@ class ConfluenceBinder(BaseBinder):
 
     def _bind_confluence_cofuguration(self) -> None:
         """Bind the Confluence datasource configuration."""
-        confluence_configuration = [
-            configuration
-            for configuration in self.configuration.pipeline.embedding.datasources
-            if isinstance(configuration, ConfluenceDatasourceConfiguration)
-        ][0]
         self.binder.bind(
             ConfluenceDatasourceConfiguration,
-            to=confluence_configuration,
+            to=self.configuration,
             scope=singleton,
         )
 
@@ -202,14 +192,9 @@ class PdfDatasourcesBinder(BaseBinder):
 
     def _bind_pdf_configuration(self) -> None:
         """Bind the PDF datasource configuration."""
-        confluence_configuration = [
-            configuration
-            for configuration in self.configuration.pipeline.embedding.datasources
-            if isinstance(configuration, PdfDatasourceConfiguration)
-        ][0]
         self.binder.bind(
             PdfDatasourceConfiguration,
-            to=confluence_configuration,
+            to=self.configuration,
             scope=singleton,
         )
 
@@ -254,11 +239,14 @@ class DatasourcesBinder(BaseBinder):
         datasources = {}
 
         for datasource_configuration in datasources_configuration:
-            datasource_manager_key = DatasourcesBinder.mapping[
+            datasource_binder_class = DatasourcesBinder.mapping[
                 datasource_configuration.name
-            ](configuration=self.configuration, binder=self.binder).bind()
+            ]
+            datasource_binding_key = datasource_binder_class(
+                configuration=datasource_configuration, binder=self.binder
+            ).bind()
             datasources[datasource_configuration.name] = self._get_bind(
-                datasource_manager_key
+                datasource_binding_key
             )()
 
         self.binder.bind(
