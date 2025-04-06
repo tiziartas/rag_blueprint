@@ -8,16 +8,12 @@ To run the script execute the following command from the root directory of the p
 
 import logging
 
-from injector import Injector
-
-from common.bootstrap.configuration.configuration import Configuration
-from common.bootstrap.initializer import EvaluationInitializer
-from evaluation.evaluators import LangfuseEvaluator
+from core.logger import LoggerConfiguration
+from evaluation.bootstrap.initializer import EvaluationInitializer
+from evaluation.evaluators.langfuse import LangfuseEvaluatorFactory
 
 
-def main(
-    injector: Injector,
-):
+def run(logger: logging.Logger = LoggerConfiguration.get_logger(__name__)):
     """Execute RAG system evaluation workflow.
 
     Args:
@@ -27,23 +23,21 @@ def main(
         Evaluates both feedback and manual datasets
         Results are recorded in Langfuse
     """
-    configuration = injector.get(Configuration)
-    langfuse_evaluator = injector.get(LangfuseEvaluator)
+    initializer = EvaluationInitializer()
+    configuration = initializer.get_configuration()
+    langfuse_evaluator = LangfuseEvaluatorFactory.create(configuration)
 
-    logging.info(f"Evaluating {langfuse_evaluator.run_name}...")
+    logger.info(f"Evaluating {langfuse_evaluator.run_name}...")
 
     langfuse_evaluator.evaluate(
-        dataset_name=configuration.pipeline.augmentation.langfuse.datasets.feedback_dataset.name
+        dataset_name=configuration.augmentation.langfuse.datasets.feedback_dataset.name
     )
     langfuse_evaluator.evaluate(
-        dataset_name=configuration.pipeline.augmentation.langfuse.datasets.manual_dataset.name
+        dataset_name=configuration.augmentation.langfuse.datasets.manual_dataset.name
     )
 
-    logging.info(
-        f"Evaluation complete for {configuration.metadata.build_name}."
-    )
+    logger.info(f"Evaluation complete for {configuration.metadata.build_name}.")
 
 
 if __name__ == "__main__":
-    injector = EvaluationInitializer().init_injector()
-    main(injector)
+    run()

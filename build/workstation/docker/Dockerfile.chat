@@ -17,4 +17,4 @@ RUN --mount=type=cache,target=/root/.cache \
 
 ENV TOKENIZERS_PARALLELISM=false
 
-CMD uv run python src/chat.py --build-name ${BUILD_NAME} --env ${ENV}
+CMD uv run python src/augment.py --build-name ${BUILD_NAME} --env ${ENV} --on-prem-config

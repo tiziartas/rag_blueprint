@@ -1,11 +1,21 @@
+from typing import Type
+
 from chainlit.data.sql_alchemy import BaseDataLayer
 from chainlit.types import Feedback
 
-from augmentation.chainlit.feedback import ChainlitFeedbackService
-from common.bootstrap.configuration.pipeline.augmentation.langfuse.langfuse_configuration import (
+from augmentation.bootstrap.configuration.configuration import (
+    _AugmentationConfiguration,
+)
+from augmentation.bootstrap.configuration.langfuse_configuration import (
     LangfuseDatasetConfiguration,
 )
-from common.langfuse.dataset import LangfuseDatasetService
+from augmentation.chainlit.feedback_service import (
+    ChainlitFeedbackService,
+    ChainlitFeedbackServiceFactory,
+    LangfuseDatasetServiceFactory,
+)
+from augmentation.langfuse.dataset_service import LangfuseDatasetService
+from core import Factory
 
 
 class ChainlitService(BaseDataLayer):
@@ -106,3 +116,22 @@ class ChainlitService(BaseDataLayer):
     async def update_thread(self, *args, **kwargs):
         """Update a thread. Placeholder implementation."""
         pass
+
+
+class ChainlitServiceFactory(Factory):
+    _configuration_class: Type = _AugmentationConfiguration
+
+    @classmethod
+    def _create_instance(
+        cls, configuration: _AugmentationConfiguration
+    ) -> ChainlitService:
+        langfuse_dataset_service = LangfuseDatasetServiceFactory.create(
+            configuration.langfuse
+        )
+        feedback_service = ChainlitFeedbackServiceFactory.create(configuration)
+        manual_dataset = configuration.langfuse.datasets.manual_dataset
+        return ChainlitService(
+            langfuse_dataset_service=langfuse_dataset_service,
+            feedback_service=feedback_service,
+            manual_dataset=manual_dataset,
+        )

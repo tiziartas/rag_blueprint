@@ -1,63 +1,189 @@
+import logging
 import sys
-from typing import Tuple
 
 sys.path.append("./src")
 
+import argparse
 import os
 import socket
-import subprocess
-from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from enum import Enum
 
+from pydantic import Field
 from python_on_whales import DockerClient
 from python_on_whales.exceptions import DockerException
 
-from common.bootstrap.configuration.configuration import Configuration
-from common.bootstrap.configuration.pipeline.embedding.vector_store.vector_store_configuration import (
-    PGVectorConfiguration,
+from augmentation.bootstrap.initializer import AugmentationPackageLoader
+from core.base_configuration import MetadataConfiguration
+from core.configuration_retrievers import (
+    BaseConfigurationRetriever,
+    ConfiguratioRetriverRegistry,
+)
+from embedding.vector_stores.pgvector.configuration import (
+    PGVectorStoreConfiguration,
+)
+from evaluation.bootstrap.configuration.configuration import (
+    EvaluationConfiguration,
 )
 
 
-class Logger(object):
-    """Logger redirecting output to log file.
+class BuildMetadataConfiguration(MetadataConfiguration):
+    init: bool = Field(
+        False, description="If set, then the initialization will be run."
+    )
+    deploy: bool = Field(
+        False, description="If set, then the deployment will be run."
+    )
+    log_file: str = Field(
+        "build/workstation/logs/build.log",
+        description="The name of the log file.",
+    )
 
-    Redirects all the output to the log file.
+    @classmethod
+    def _get_parser(cls):
+        parser = super()._get_parser()
+        mode_group = parser.add_mutually_exclusive_group(required=True)
+        mode_group.add_argument(
+            "--init", action="store_true", help="Run initialization"
+        )
+        mode_group.add_argument(
+            "--deploy", action="store_true", help="Run deployment"
+        )
+        parser.add_argument(
+            "--log-file",
+            type=str,
+            help="The file to log the deployment output",
+        )
+        return parser
 
-    Attributes:
-        terminal: Represents the terminal output
-        log_file: Log file to write the output
-    """
+    @classmethod
+    def _get_data(cls, data: dict, args: argparse.Namespace) -> dict:
+        data = super()._get_data(data, args)
+        if args.init:
+            data["init"] = True
+        if args.deploy:
+            data["deploy"] = True
+        if args.log_file:
+            data["log_file"] = args.log_file
+        return data
 
-    def __init__(self, filename: str):
-        """Initialize the logger.
+
+class FileAndConsoleLogger(logging.Logger):
+    """Custom logger that writes to both file and console with timestamps."""
+
+    def __init__(self, name: str, filename: str, level: int = logging.INFO):
+        """Initialize the logger with both file and console handlers.
 
         Args:
-            filename: The name of the log file
+            name: Logger name
+            filename: Path to log file
+            level: Logging level (default: INFO)
         """
-        self.terminal = sys.stdout
-        self.log_file = open(filename, "a")
-        sys.stdout = self
+        super().__init__(name, level)
 
-    def write(self, message: str):
-        """Write the message to the terminal and log file.
+        # Create log directory if it doesn't exist
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-        Add the timestamp to the message and write it to the terminal and log file.
+        # Create formatters and handlers
+        formatter = logging.Formatter(
+            fmt="[%(asctime)s] %(levelname)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
 
-        Args:
-            message: The message to write
+        # File handler
+        file_handler = logging.FileHandler(filename, mode="a")
+        file_handler.setFormatter(formatter)
+        self.addHandler(file_handler)
+
+        # Console handler
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        self.addHandler(console_handler)
+
+        # Register the logger
+        logging.getLogger("").addHandler(file_handler)
+        logging.getLogger("").addHandler(console_handler)
+
+
+class BuildInitializer:
+
+    def __init__(self):
+
+        self.metadata = BuildMetadataConfiguration()
+        self.build_name = self.metadata.build_name
+        self.environment = self.metadata.environment
+        self.logger = FileAndConsoleLogger(
+            name=__name__,
+            filename=self.metadata.log_file,
+            level=self.metadata.log_level.value_as_int,
+        )
+        self.init = self.metadata.init
+        self.deploy = self.metadata.deploy
+
+        AugmentationPackageLoader(logger=self.logger).load_packages()
+        self.configuration_retriever = self._get_configuration_retriever()
+        self.configuration = self.configuration_retriever.get()
+        self._export_configuration()
+
+    def get_configuration(self) -> EvaluationConfiguration:
+        if not self.configuration:
+            self.configuration = self.configuration_retriever.get()
+        return self.configuration
+
+    def should_run_initialization(self) -> bool:
+        return self.init
+
+    def should_run_deployment(self) -> bool:
+        return self.deploy
+
+    def _get_configuration_retriever(self) -> BaseConfigurationRetriever:
+        configuration_retriever_class = ConfiguratioRetriverRegistry.get(
+            on_prem=True
+        )
+        return configuration_retriever_class(
+            configuration_class=EvaluationConfiguration,
+            metadata=self.metadata,
+        )
+
+    def _export_configuration(self):
+        """Export the port configuration.
+
+        Export the port configuration to the environment variables.
+        It is required for docker-compose, so it is able to use ports from the configuration.
         """
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if message.strip():
-            message = f"[{timestamp}] {message}\n"
-            self.terminal.write(message)
-            self.log_file.write(message)
-            self.flush()
+        vector_store_configuration = self.configuration.embedding.vector_store
+        os.environ["RAG__VECTOR_STORE__PORT_REST"] = str(
+            vector_store_configuration.port
+        )
+        if isinstance(vector_store_configuration, PGVectorStoreConfiguration):
+            os.environ["RAG__VECTOR_STORE__DATABASE_NAME"] = str(
+                vector_store_configuration.database_name
+            )
+            os.environ["RAG__VECTOR_STORE__USERNAME"] = str(
+                vector_store_configuration.secrets.username.get_secret_value()
+            )
+            os.environ["RAG__VECTOR_STORE__PASSWORD"] = str(
+                vector_store_configuration.secrets.password.get_secret_value()
+            )
 
-    def flush(self):
-        """Flush the output to the terminal and log file."""
-        self.terminal.flush()
-        self.log_file.flush()
+        langfuse_configuration = self.configuration.augmentation.langfuse
+        os.environ["RAG__LANGFUSE__DATABASE__PORT"] = str(
+            langfuse_configuration.database.port
+        )
+        os.environ["RAG__LANGFUSE__DATABASE__NAME"] = (
+            langfuse_configuration.database.db
+        )
+        os.environ["RAG__LANGFUSE__DATABASE__USER"] = (
+            langfuse_configuration.database.secrets.user.get_secret_value()
+        )
+        os.environ["RAG__LANGFUSE__DATABASE__PASSWORD"] = (
+            langfuse_configuration.database.secrets.password.get_secret_value()
+        )
+        os.environ["RAG__LANGFUSE__PORT"] = str(langfuse_configuration.port)
+
+        os.environ["RAG__CHAINLIT__PORT"] = str(
+            self.configuration.augmentation.chainlit.port
+        )
 
 
 class CommandRunner:
@@ -74,9 +200,9 @@ class CommandRunner:
 
     def __init__(
         self,
-        logger: Logger,
-        build_name: str,
-        environment: str,
+        logger: FileAndConsoleLogger,
+        configuraiton: EvaluationConfiguration,
+        secrets_filepath: str,
         docker_compose_filename: str,
     ):
         """Initialize the command runner.
@@ -88,31 +214,13 @@ class CommandRunner:
             docker_compose_filename: The file containing the docker-compose configuration
         """
         self.logger = logger
-        self.build_name = build_name
-        self.environment = environment
+        self.configuration = configuraiton
         self.docker_compose_filename = docker_compose_filename
-        self.configuration_filename, self.secrets_filename = (
-            self._get_configuration_and_secrets_filepaths(environment)
-        )
 
         self.docker_client = DockerClient(
             compose_files=[docker_compose_filename],
-            compose_env_files=[self.secrets_filename],
+            compose_env_files=[secrets_filepath],
         )
-        self.logger.write(
-            f"Deployment with build name {self.build_name} started."
-        )
-        with open(self.configuration_filename) as f:
-            self.configuration_json = f.read()
-        self.configuration = Configuration.model_validate_json(
-            self.configuration_json,
-            context={"secrets_file": self.secrets_filename},
-        )
-        print(f"::{self.configuration_filename}")
-        print(self.configuration.model_dump_json(indent=4))
-
-        self.configuration.metadata.build_name = build_name
-        self._export_configuration()
 
     def is_port_in_use(self, port: int) -> bool:
         """Check if the port is in use.
@@ -147,16 +255,16 @@ class CommandRunner:
         """
         try:
             if build:
-                self.logger.write(f"Building docker service: {service_name}")
+                self.logger.info(f"Building docker service: {service_name}")
                 self.docker_client.compose.build(
                     services=[service_name],
                     build_args={
-                        "BUILD_NAME": self.build_name,
-                        "ENV": self.environment,
+                        "BUILD_NAME": self.configuration.metadata.build_name,
+                        "ENV": self.configuration.metadata.environment.value,
                     },
                 )
 
-            self.logger.write(f"Running docker service: {service_name}")
+            self.logger.info(f"Running docker service: {service_name}")
             self.docker_client.compose.up(
                 services=[service_name],
                 detach=detached,
@@ -164,7 +272,7 @@ class CommandRunner:
             )
             return 0
         except DockerException as e:
-            self.logger.write(
+            self.logger.error(
                 f"Error running docker service: {service_name}. Error: {e}. Args: {e.args}"
             )
             return e.return_code
@@ -177,70 +285,8 @@ class CommandRunner:
         Returns:
             int: The return code of the command
         """
-        self.logger.write("Cleaning up Docker resources")
+        self.logger.info("Cleaning up Docker resources")
         self.docker_client.system.prune(all=True, volumes=True)
-
-    def _get_configuration_and_secrets_filepaths(
-        self, environment: str
-    ) -> Tuple[str, str]:
-        """Get the configuration and secrets files from the command line arguments.
-
-        Args:
-            args: Parsed command line arguments
-
-        Returns:
-            Tuple[str, str]: Configuration and secrets filepaths
-        """
-
-        configuration_filepath = (
-            f"configurations/configuration.{environment}.json"
-        )
-        secrets_filepath = f"configurations/secrets.{environment}.env"
-        return configuration_filepath, secrets_filepath
-
-    def _export_configuration(self):
-        """Export the port configuration.
-
-        Export the port configuration to the environment variables.
-        It is required for docker-compose, so it is able to use ports from the configuration.
-        """
-        vector_store_configuration = (
-            self.configuration.pipeline.embedding.vector_store
-        )
-        os.environ["RAG__VECTOR_STORE__PORT_REST"] = str(
-            vector_store_configuration.ports.rest
-        )
-        if isinstance(vector_store_configuration, PGVectorConfiguration):
-            os.environ["RAG__VECTOR_STORE__DATABASE_NAME"] = str(
-                vector_store_configuration.database_name
-            )
-            os.environ["RAG__VECTOR_STORE__USERNAME"] = str(
-                vector_store_configuration.secrets.username.get_secret_value()
-            )
-            os.environ["RAG__VECTOR_STORE__PASSWORD"] = str(
-                vector_store_configuration.secrets.password.get_secret_value()
-            )
-
-        langfuse_configuration = (
-            self.configuration.pipeline.augmentation.langfuse
-        )
-        os.environ["RAG__LANGFUSE__DATABASE__PORT"] = str(
-            langfuse_configuration.database.port
-        )
-        os.environ["RAG__LANGFUSE__DATABASE__NAME"] = (
-            langfuse_configuration.database.db
-        )
-        os.environ["RAG__LANGFUSE__DATABASE__USER"] = (
-            langfuse_configuration.database.secrets.user.get_secret_value()
-        )
-        os.environ["RAG__LANGFUSE__DATABASE__PASSWORD"] = (
-            langfuse_configuration.database.secrets.password.get_secret_value()
-        )
-        os.environ["RAG__LANGFUSE__PORT"] = str(langfuse_configuration.port)
-
-        os.environ["RAG__CHAINLIT__PORT"] = str(
-            self.configuration.pipeline.augmentation.chainlit.port
-        )
 
 
 class Deployment:
@@ -263,7 +309,9 @@ class Deployment:
         CHAT = "chat"
         EVALUATION = "evaluate"
 
-    def __init__(self, command_runner: CommandRunner, logger: Logger):
+    def __init__(
+        self, command_runner: CommandRunner, logger: FileAndConsoleLogger
+    ):
         """Initialize the deployment.
 
         Args:
@@ -291,7 +339,7 @@ class Deployment:
             Deployment.ServiceName.UNIT_TESTS.value
         )
         if return_code != 0:
-            self.logger.write("Unit tests failed. Exiting deployment.")
+            self.logger.info("Unit tests failed. Exiting deployment.")
             sys.exit(1)
         self.command_runner.run_docker_service(
             Deployment.ServiceName.EMBEDDING.value
@@ -323,7 +371,9 @@ class Initialization:
         LANGFUSE = "langfuse"
         LANGFUSE_DB = "langfuse-db"
 
-    def __init__(self, command_runner: CommandRunner, logger: Logger):
+    def __init__(
+        self, command_runner: CommandRunner, logger: FileAndConsoleLogger
+    ):
         """Initialize the initialization.
 
         Args:
@@ -353,12 +403,12 @@ class Initialization:
         Initialize the vector store service using the Docker Compose.
         If the ports are already in use, the initialization is skipped."""
         vector_store_configuration = (
-            self.command_runner.configuration.pipeline.embedding.vector_store
+            self.command_runner.configuration.embedding.vector_store
         )
-        vector_store_port_rest = vector_store_configuration.ports.rest
+        vector_store_port_rest = vector_store_configuration.port
 
         if self.command_runner.is_port_in_use(vector_store_port_rest):
-            self.logger.write(
+            self.logger.info(
                 f"REST port {vector_store_port_rest} is already in use. Skipping {vector_store_configuration.name.value} initialization."
             )
             return
@@ -372,12 +422,12 @@ class Initialization:
 
         Initialize the langfuse database service using the Docker Compose."""
         langfuse_configuration = (
-            self.command_runner.configuration.pipeline.augmentation.langfuse
+            self.command_runner.configuration.augmentation.langfuse
         )
         langfuse_db_port = langfuse_configuration.database.port
 
         if self.command_runner.is_port_in_use(langfuse_db_port):
-            self.logger.write(
+            self.logger.info(
                 f"Port {langfuse_db_port} is already in use. Skipping langfuse database server initialization."
             )
             return
@@ -391,12 +441,12 @@ class Initialization:
 
         Initialize the langfuse service using the Docker Compose."""
         langfuse_configuration = (
-            self.command_runner.configuration.pipeline.augmentation.langfuse
+            self.command_runner.configuration.augmentation.langfuse
         )
         langfuse_port = langfuse_configuration.port
 
         if self.command_runner.is_port_in_use(langfuse_port):
-            self.logger.write(
+            self.logger.info(
                 f"Port {langfuse_port} is already in use. Skipping langfuse initialization."
             )
             return
@@ -406,37 +456,9 @@ class Initialization:
             )
 
 
-def arg_parser() -> Namespace:
-    """Parse the arguments.
-
-    Parse the arguments from the command line."""
-    parser = ArgumentParser()
-    mode_group = parser.add_mutually_exclusive_group(required=True)
-    mode_group.add_argument(
-        "--init", action="store_true", help="Run initialization"
-    )
-    mode_group.add_argument(
-        "--deploy", action="store_true", help="Run deployment"
-    )
-    parser.add_argument(
-        "--build-name",
-        type=str,
-        help="The name of the build to deploy",
-    )
-    parser.add_argument(
-        "--log-file",
-        type=str,
-        help="The file to log the deployment output",
-    )
-    parser.add_argument(
-        "--env",
-        type=str,
-        help="Name of the runtime environment",
-    )
-    return parser.parse_args()
-
-
-def initialize(logger: Logger, command_runner: CommandRunner) -> None:
+def initialize(
+    logger: FileAndConsoleLogger, command_runner: CommandRunner
+) -> None:
     """
     Initialize the services.
 
@@ -444,12 +466,12 @@ def initialize(logger: Logger, command_runner: CommandRunner) -> None:
         logger: Logger for the initialization
         command_runner: Command runner for the initialization
     """
-    logger.write("Start base services initialization.")
+    logger.info("Start base services initialization.")
     Initialization(command_runner=command_runner, logger=logger).run()
-    logger.write("Base services initialization finished.")
+    logger.info("Base services initialization finished.")
 
 
-def deploy(logger: Logger, command_runner: CommandRunner) -> None:
+def deploy(logger: FileAndConsoleLogger, command_runner: CommandRunner) -> None:
     """
     Deploy the services.
 
@@ -460,15 +482,15 @@ def deploy(logger: Logger, command_runner: CommandRunner) -> None:
         Returns 1 if the unit tests fail.
     """
     try:
-        logger.write("Start deployment.")
+        logger.info("Start deployment.")
         Deployment(command_runner=command_runner, logger=logger).run()
-        logger.write(
-            f"Deployment with build name {command_runner.build_name} finished."
+        logger.info(
+            f"Deployment with build name {command_runner.configuration.metadata.build_name} finished."
         )
     finally:
         command_runner.cleanup()
-        logger.write(
-            f"Deployment with build name {command_runner.build_name} finished."
+        logger.info(
+            f"Deployment with build name {command_runner.configuration.metadata.build_name} finished."
         )
 
 
@@ -478,19 +500,18 @@ def main():
     If `--init` flag is passed initialization of the base services is run.
     Otherwise, if `--deploy` flag is passed deployment of the services is run.
     """
-    args = arg_parser()
-    logger = Logger(args.log_file)
+    initializer = BuildInitializer()
     command_runner = CommandRunner(
-        logger=logger,
-        build_name=args.build_name,
-        environment=args.env,
+        logger=initializer.logger,
+        configuraiton=initializer.get_configuration(),
+        secrets_filepath=initializer.configuration_retriever._get_secrets_filepath(),
         docker_compose_filename="build/workstation/docker/docker-compose.yml",
     )
 
-    if args.init:
-        initialize(logger, command_runner)
-    if args.deploy:
-        deploy(logger, command_runner)
+    if initializer.should_run_initialization():
+        initialize(initializer.logger, command_runner)
+    if initializer.should_run_deployment():
+        deploy(initializer.logger, command_runner)
 
 
 if __name__ == "__main__":

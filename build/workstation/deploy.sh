@@ -15,7 +15,6 @@ build_name="build-${current_epoch}"
 
 log_dir="build/workstation/logs"
 log_file="${log_dir}/${build_name}.log"
-mkdir -p $log_dir
 
 # Check virtual environment, python and pip are setup
 if [ -z "$VIRTUAL_ENV" ]; then

@@ -14,4 +14,4 @@ RUN --mount=type=cache,target=/root/.cache \
 
 ENV TOKENIZERS_PARALLELISM=false
 
-CMD uv run python src/embed.py --build-name ${BUILD_NAME} --env ${ENV}
+CMD uv run python src/embed.py --build-name ${BUILD_NAME} --env ${ENV} --on-prem-config
