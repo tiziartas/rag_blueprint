@@ -15,11 +15,8 @@ class PGVectorStoreValidator(BaseVectorStoreValidator):
     """Validator for Postgres vector store configuration.
 
     Validates the existence of a table (treated as a collection) in the Postgres
-    vector store backend.
-
-    Attributes:
-        configuration: Settings for vector store
-        client: Postgres connection
+    vector store backend. This validator ensures we don't create duplicate tables
+    in the database.
     """
 
     def __init__(
@@ -27,18 +24,30 @@ class PGVectorStoreValidator(BaseVectorStoreValidator):
         configuration: PGVectorStoreConfiguration,
         client: PGVectorClient,
     ):
+        """Initialize the PGVector validator with configuration and client.
+
+        Args:
+            configuration: Configuration for the PGVector store
+            client: PostgreSQL connection client
+        """
         self.configuration = configuration
         self.client = client
 
     def validate(self) -> None:
-        """
-        Validate the PGVector settings.
+        """Validate the PGVector configuration settings.
+
+        Runs all validation checks to ensure the vector store can be properly initialized.
+
+        Raises:
+            CollectionExistsException: If the collection already exists in database
         """
         self.validate_collection()
 
     def validate_collection(self) -> None:
-        """
-        Validate PGVector table existence.
+        """Validate that the PGVector collection (table) doesn't already exist.
+
+        Checks if a table with the same name exists in the PostgreSQL database
+        to prevent duplicate collections.
 
         Raises:
             CollectionExistsException: If the table (collection) already exists.
@@ -53,7 +62,14 @@ class PGVectorStoreValidator(BaseVectorStoreValidator):
 
 
 class PGVectorStoreValidatorFactory(SingletonFactory):
-    """Factory for creating configured Qdrant clients."""
+    """Factory for creating configured PGVector store validators.
+
+    Creates and manages singleton instances of validators for PostgreSQL
+    vector store backends.
+
+    Attributes:
+        _configuration_class: Type of the configuration class used for validation.
+    """
 
     _configuration_class: Type = PGVectorStoreConfiguration
 
@@ -61,13 +77,13 @@ class PGVectorStoreValidatorFactory(SingletonFactory):
     def _create_instance(
         cls, configuration: PGVectorStoreConfiguration
     ) -> PGVectorStoreValidator:
-        """Creates a Qdrant client based on provided configuration.
+        """Creates a PGVector validator based on provided configuration.
 
         Args:
-            configuration: QDrant connection configuration.
+            configuration: PostgreSQL vector store connection configuration.
 
         Returns:
-            QdrantClient: Configured client instance.
+            PGVectorStoreValidator: Configured validator instance.
         """
         client = PGVectorStoreClientFactory.create(configuration)
         return PGVectorStoreValidator(

@@ -10,7 +10,19 @@ from embedding.bootstrap.configuration.embedding_model_configuration import (
 
 
 class VoyageEmbeddingModelConfiguration(EmbeddingModelConfiguration):
+    """Configuration for Voyage embedding models.
+
+    This class represents the configuration needed for using Voyage AI embedding models,
+    including authentication credentials and model settings.
+    """
+
     class Secrets(BaseSecrets):
+        """Secrets for Voyage embedding model authentication.
+
+        Contains API key and other sensitive information required to authenticate
+        with the Voyage AI API for embedding generation.
+        """
+
         model_config = ConfigDict(
             env_file_encoding="utf-8",
             env_prefix="RAGKB__EMBEDDING_MODELS__VOYAGE__",

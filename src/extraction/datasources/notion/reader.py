@@ -21,6 +21,12 @@ from extraction.datasources.notion.exporter import (
 
 
 class NotionObjectType(Enum):
+    """
+    Enum representing Notion object types.
+    This enum is used to specify the type of Notion object being processed,
+    such as a page or a database.
+    """
+
     PAGE = "page"
     DATABASE = "database"
 
@@ -30,13 +36,6 @@ class NotionDatasourceReader(BaseReader):
 
     Implements document extraction from Notion pages and databases with
     support for batched async operations and export limits.
-
-    Attributes:
-        client: Client for Notion API interactions
-        export_batch_size: Number of objects to export concurrently
-        export_limit: Maximum number of objects to export
-        exporter: Component for converting Notion content to documents
-        home_page_database_id: ID of root database containing content index
     """
 
     def __init__(
@@ -52,6 +51,7 @@ class NotionDatasourceReader(BaseReader):
             configuration: Settings for Notion access and limits
             client: Client for Notion API interaction
             exporter: Component for content export and conversion
+            logger: Logger for logging messages and errors
         """
         super().__init__()
         self.client = client
@@ -128,19 +128,24 @@ class NotionDatasourceReader(BaseReader):
     async def _export_documents(
         self, chunked_ids: List[List[str]], objects_type: NotionObjectType
     ) -> Tuple[List[NotionDocument], List[str]]:
-        """Export documents in batches.
+        """Export Notion documents in batches with progress tracking.
+
+        Processes batches of Notion object IDs, exporting them through the exporter
+        component. Handles errors gracefully by tracking failed exports and
+        continuing with the next batch.
 
         Args:
-            chunked_ids: Batched lists of object IDs
-            objects_type: Type of Notion objects to export
+            chunked_ids: List of ID batches, where each batch is a list of IDs
+                         to be processed together
+            objects_type: Type of Notion objects to export (PAGE or DATABASE)
 
         Returns:
             Tuple containing:
-                - List of exported documents
-                - List of failed export IDs
+                - List of successfully exported NotionDocument objects
+                - List of IDs that failed during export
 
         Raises:
-            ValueError: If unsupported object type provided
+            ValueError: If objects_type is not a valid NotionObjectType
         """
         all_objects = []
         failed_exports = []

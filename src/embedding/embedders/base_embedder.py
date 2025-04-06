@@ -13,12 +13,8 @@ from embedding.bootstrap.configuration.configuration import (
 class BaseEmbedder(ABC):
     """Abstract base class for text node embedding operations.
 
-    Defines interface for embedding generation and storage operations
-    on text nodes.
-
-    Attributes:
-        embedding_model: Model for generating embeddings
-        vector_store: Storage for embedding vectors
+    This class provides core functionality for embedding text nodes,
+    with derived classes implementing specific embedding strategies.
     """
 
     def __init__(
@@ -27,38 +23,41 @@ class BaseEmbedder(ABC):
         embedding_model: BaseEmbedding,
         vector_store: VectorStore,
     ):
-        """Initialize embedder with model and storage.
+        """Initialize embedder with configuration, model and storage.
 
         Args:
-            embedding_model: Model to generate embeddings
-            vector_store: Storage for embedding vectors
+            configuration: Configuration parameters for the embedding process
+            embedding_model: Model to generate text embeddings
+            vector_store: Storage system for persisting embedding vectors
         """
         super().__init__()
+        self.configuration = configuration
         self.embedding_model = embedding_model
         self.vector_store = vector_store
-        self.batch_size = configuration.embedding.embedding_model.batch_size
-        self.current_nodes_batch = []
 
     @abstractmethod
     def embed(self, nodes: List[TextNode]) -> None:
-        """Generate embeddings for text nodes in batches.
+        """Generate embeddings for text nodes using batch processing.
+
+        This method should implement a strategy for processing the provided nodes,
+        potentially splitting them into batches for efficient embedding generation.
 
         Args:
             nodes: Collection of text nodes to embed
 
         Note:
-            Modifies nodes in-place by adding embeddings
+            Implementation should modify nodes in-place by adding embeddings
         """
         pass
 
     @abstractmethod
     def embed_flush(self) -> None:
-        """Generate embeddings for remaining nodes.
+        """Process and generate embeddings for any remaining nodes.
 
-        Args:
-            nodes: Collection of text nodes to embed
+        This method should handle any nodes that remain in the buffer, ensuring all nodes receive embeddings.
 
         Note:
-            Modifies nodes in-place by adding embeddings
+            Should be called at the end of processing to ensure no nodes remain
+            unembedded in the buffer
         """
         pass

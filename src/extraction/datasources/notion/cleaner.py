@@ -22,15 +22,16 @@ class NotionDatasourceCleaner(BasicMarkdownCleaner[NotionDocument]):
     """
 
     def clean(self, document: NotionDocument) -> NotionDocument:
-        """Clean a collection of Notion documents.
+        """Clean a single Notion document.
 
-        Processes both databases and pages, removing HTML artifacts and empty content.
+        Processes the document based on its type (database or page),
+        removing HTML artifacts and cleaning the content.
 
         Args:
-            documents: Collection of Notion documents to clean
+            document: Notion document to clean
 
         Returns:
-            List[NotionDocument]: Filtered and cleaned documents
+            NotionDocument: Cleaned document, or None if content is empty after cleaning
         """
         if document.metadata["type"] == "database":
             cleaned_text = self._clean_database(document)
@@ -47,22 +48,28 @@ class NotionDatasourceCleaner(BasicMarkdownCleaner[NotionDocument]):
     def _clean_database(self, document: NotionDocument) -> str:
         """Clean Notion database content.
 
+        Extracts and cleans the text content from a Notion database document,
+        processing any embedded HTML elements.
+
         Args:
             document: Database document to clean
 
         Returns:
-            str: Cleaned database content
+            str: Cleaned database content as markdown text
         """
         return NotionDatasourceCleaner._parse_html_in_markdown(document.text)
 
     def _clean_page(self, document: NotionDocument) -> str:
         """Clean Notion page content.
 
+        Extracts and cleans the text content from a Notion page document,
+        processing any embedded HTML elements.
+
         Args:
             document: Page document to clean
 
         Returns:
-            str: Cleaned page content
+            str: Cleaned page content as markdown text
         """
         return NotionDatasourceCleaner._parse_html_in_markdown(document.text)
 
@@ -70,16 +77,19 @@ class NotionDatasourceCleaner(BasicMarkdownCleaner[NotionDocument]):
     def _parse_html_in_markdown(md_text: str) -> str:
         """Process HTML elements within markdown content.
 
-        Converts HTML to markdown and removes content without alphanumeric characters.
+        Performs two main cleaning operations:
+        1. Removes HTML comments completely
+        2. Converts HTML tags to markdown format
+        3. Removes elements that don't contain alphanumeric characters
 
         Args:
             md_text: Text containing markdown and HTML
 
         Returns:
-            str: Cleaned markdown text
+            str: Cleaned markdown text with HTML properly converted or removed
 
         Note:
-            Uses BeautifulSoup for HTML parsing
+            Uses BeautifulSoup for HTML parsing and markdownify for HTML-to-markdown conversion
         """
 
         def replace_html(match):

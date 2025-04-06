@@ -15,11 +15,8 @@ class ChromaVectorStoreValidator(BaseVectorStoreValidator):
     """Validator for Chroma vector store configuration.
 
     Validates collection settings and existence for Chroma
-    vector store backend.
-
-    Attributes:
-        configuration: Settings for vector store
-        client: Client for Chroma interactions
+    vector store backend. Ensures proper configuration before
+    operations are performed against the vector store.
     """
 
     def __init__(
@@ -37,13 +34,21 @@ class ChromaVectorStoreValidator(BaseVectorStoreValidator):
         self.client = client
 
     def validate(self) -> None:
-        """
-        Valiuate the Chroma vector store settings.
+        """Validate the Chroma vector store settings.
+
+        Performs all required validation steps for the Chroma vector store,
+        including collection validation.
+
+        Raises:
+            CollectionExistsException: If collection already exists
         """
         self.validate_collection()
 
     def validate_collection(self) -> None:
         """Validate Chroma collection existence.
+
+        Checks if a collection with the specified name already exists
+        in the Chroma database.
 
         Raises:
             CollectionExistsException: If collection already exists
@@ -54,7 +59,14 @@ class ChromaVectorStoreValidator(BaseVectorStoreValidator):
 
 
 class ChromaVectorStoreValidatorFactory(SingletonFactory):
-    """Factory for creating configured Qdrant clients."""
+    """Factory for creating configured Chroma validator instances.
+
+    Manages the creation and caching of ChromaVectorStoreValidator
+    instances based on provided configuration.
+
+    Attributes:
+        _configuration_class (Type): The configuration class for Chroma vector store.
+    """
 
     _configuration_class: Type = ChromaVectorStoreConfiguration
 
@@ -62,13 +74,13 @@ class ChromaVectorStoreValidatorFactory(SingletonFactory):
     def _create_instance(
         cls, configuration: ChromaVectorStoreConfiguration
     ) -> ChromaVectorStoreValidator:
-        """Creates a Qdrant client based on provided configuration.
+        """Creates a Chroma validator based on provided configuration.
 
         Args:
-            configuration: QDrant connection configuration.
+            configuration: Chroma connection configuration.
 
         Returns:
-            QdrantClient: Configured client instance.
+            ChromaVectorStoreValidator: Configured validator instance.
         """
         client = ChromaVectorStoreClientFactory.create(configuration)
         return ChromaVectorStoreValidator(

@@ -10,47 +10,52 @@ from extraction.orchestrators.base_orchestator import BaseDatasourceOrchestrator
 
 
 class BasicDatasourceOrchestrator(BaseDatasourceOrchestrator):
-    """Orchestrator for multi-datasource content processing.
-
-    Manages extraction, embedding and storage of content from multiple
-    datasources through a unified interface.
-
-    Attributes:
-        embedder: Component for generating embeddings
-        datasources: Mapping of datasource type to manager
-        documents: Raw documents from datasources
-        cleaned_documents: Processed documents
-        nodes: Text nodes for embedding
+    """
+    Orchestrator for multi-datasource content processing.
     """
 
     async def full_refresh_sync(self) -> AsyncIterator[BaseDocument]:
         """Extract and process content from all datasources.
 
-        Processes each configured datasource to extract documents,
-        clean content and generate text nodes.
+        Processes each configured datasource to extract documents and clean content.
+
+        Returns:
+            AsyncIterator[BaseDocument]: Stream of documents extracted from all datasources
         """
         for datasource_manager in self.datasource_managers:
             async for document in datasource_manager.full_refresh_sync():
                 yield document
 
     async def incremental_sync(self) -> AsyncIterator[BaseDocument]:
+        """
+        Not implemented yet.
+        """
         raise NotImplementedError("Incremental sync is not supported yet.")
 
 
 class BasicDatasourceOrchestratorFactory(Factory):
+    """Factory for creating BasicDatasourceOrchestrator instances.
+
+    Creates orchestrator instances configured with appropriate datasource managers
+    based on the provided extraction configuration.
+    """
+
     _configuration_class: Type = ExtractionConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: ExtractionConfiguration
     ) -> BasicDatasourceOrchestrator:
-        """Creates a configured PDF reader.
+        """Creates a configured BasicDatasourceOrchestrator.
+
+        Initializes datasource managers for each configured datasource
+        and creates an orchestrator instance with those managers.
 
         Args:
-            configuration: Settings for PDF processing
+            configuration: Settings for extraction process configuration
 
         Returns:
-            PDFDatasourceReader: Configured reader instance
+            BasicDatasourceOrchestrator: Configured orchestrator instance
         """
         datasource_managers = [
             DatasourceManagerRegistry.get(datasource_configuration.name).create(

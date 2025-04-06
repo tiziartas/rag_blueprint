@@ -15,6 +15,13 @@ from embedding.bootstrap.configuration.embedding_model_configuration import (
 
 
 class _EvaluationConfiguration(BaseConfiguration):
+    """
+    Internal configuration class for evaluation-specific settings.
+
+    This class defines the configuration parameters needed for the evaluation pipeline,
+    including language and embedding models used for judging the evaluation results.
+    """
+
     judge_llm: Any = Field(
         ...,
         description="The judge language model configuration for the evaluation pipeline.",
@@ -27,6 +34,16 @@ class _EvaluationConfiguration(BaseConfiguration):
     @field_validator("judge_llm")
     @classmethod
     def _validate_judge_llm(cls, value: Any, info: ValidationInfo) -> Any:
+        """
+        Validates the judge language model configuration.
+
+        Args:
+            value: The configuration value to validate
+            info: Validation context information
+
+        Returns:
+            Validated language model configuration
+        """
         return super()._validate(
             value,
             info=info,
@@ -38,6 +55,16 @@ class _EvaluationConfiguration(BaseConfiguration):
     def _validate_judge_embedding_model(
         cls, value: Any, info: ValidationInfo
     ) -> Any:
+        """
+        Validates the judge embedding model configuration.
+
+        Args:
+            value: The configuration value to validate
+            info: Validation context information
+
+        Returns:
+            Validated embedding model configuration
+        """
         return super()._validate(
             value,
             info=info,
@@ -46,6 +73,14 @@ class _EvaluationConfiguration(BaseConfiguration):
 
 
 class EvaluationConfiguration(AugmentationConfiguration):
+    """
+    Main configuration class for the evaluation process.
+
+    This class extends the AugmentationConfiguration to include
+    evaluation-specific settings, allowing the evaluation pipeline
+    to be properly configured.
+    """
+
     evaluation: _EvaluationConfiguration = Field(
         ..., description="Configuration of the augmentation process."
     )

@@ -1,2 +1,4 @@
+.**/
 build/workstation/docker/.docker-data
-.venv
+res/
+docs/

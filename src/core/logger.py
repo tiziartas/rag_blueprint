@@ -5,7 +5,16 @@ from core.base_configuration import LogLevelName, MetadataConfiguration
 
 
 class LoggerConfiguration:
-    """Utility class for configuring application-wide logging."""
+    """Utility class for configuring application-wide logging.
+
+    This class provides methods to create consistently configured loggers,
+    manage log levels, and control the behavior of third-party loggers.
+    It uses the log level settings from MetadataConfiguration by default.
+
+    Attributes:
+        LOG_FORMAT: The format string used for log messages
+        log_level: The application-wide log level (cached from configuration)
+    """
 
     LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
@@ -15,12 +24,12 @@ class LoggerConfiguration:
     def get_logger(
         cls, name: str, log_level: LogLevelName = None, propagate: bool = False
     ) -> logging.Logger:
-        """Get or create a logger with specified configuration.
+        """Create a logger with specified configuration.
 
         Args:
             name: Name for the logger (typically __name__)
-            level: Logging level (default: INFO)
-            propagate: Whether to propagate to parent loggers (default: True)
+            log_level: Logging level
+            propagate: Whether to propagate to parent loggers
 
         Returns:
             logging.Logger: Configured logger instance
@@ -32,7 +41,6 @@ class LoggerConfiguration:
         logger.setLevel(cls.log_level.value_as_int)
         logger.propagate = propagate
 
-        # Only add handler if logger doesn't have any
         if not logger.handlers:
             formatter = logging.Formatter(cls.LOG_FORMAT)
             handler = logging.StreamHandler(sys.stdout)
@@ -55,7 +63,12 @@ class LoggerConfiguration:
 
     @staticmethod
     def mute_logs():
-        """Suppress all logs."""
+        """Suppress verbose logs from third-party libraries.
+
+        Sets appropriate log levels for various libraries to reduce log noise:
+        - Sets 'httpx' to WARNING level
+        - Sets 'pdfminer' to ERROR level
+        """
         # Warning logs
         logging.getLogger("httpx").setLevel(logging.WARNING)
 

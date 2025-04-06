@@ -5,7 +5,7 @@ from embedding.bootstrap.configuration.embedding_model_configuration import (
 from embedding.embedding_models.hugging_face.configuration import (
     HuggingFaceEmbeddingModelConfiguration,
 )
-from embedding.embedding_models.hugging_face.hugging_face import (
+from embedding.embedding_models.hugging_face.embedding_model import (
     HuggingFaceEmbeddingModelFactory,
     HuggingFaceEmbeddingModelTokenizerFactory,
 )
@@ -16,6 +16,14 @@ from embedding.embedding_models.registry import (
 
 
 def register():
+    """
+    Register all components required for HuggingFace embedding models.
+
+    This function registers the HuggingFace-specific implementations with the appropriate registries:
+    - Configuration class with the configuration registry
+    - Model factory with the embedding model registry
+    - Tokenizer factory with the tokenizer registry
+    """
     EmbeddingModelConfigurationRegistry.register(
         EmbeddingModelProviderName.HUGGING_FACE,
         HuggingFaceEmbeddingModelConfiguration,

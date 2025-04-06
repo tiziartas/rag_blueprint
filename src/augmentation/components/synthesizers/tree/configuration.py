@@ -9,6 +9,16 @@ from augmentation.bootstrap.configuration.components.synthesizer_configuration i
 
 
 class TreeSynthesizerConfiguration(SynthesizerConfiguration):
+    """
+    Configuration class for the Tree Synthesizer component.
+
+    The Tree Synthesizer hierarchically organizes and summarizes information,
+    creating a tree-like structure of knowledge from input content. This enables
+    better organization and condensation of information for RAG applications.
+
+    This class extends the base SynthesizerConfiguration with tree-specific parameters.
+    """
+
     name: Literal[SynthesizerName.TREE] = Field(
         ..., description="The name of the synthesizer."
     )

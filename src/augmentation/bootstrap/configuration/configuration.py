@@ -18,6 +18,13 @@ from embedding.bootstrap.configuration.configuration import (
 
 
 class _AugmentationConfiguration(BaseConfiguration):
+    """
+    Internal configuration class for augmentation process settings.
+
+    This class defines the structure for augmentation configuration including
+    Langfuse monitoring, Chainlit UI, and Query Engine components.
+    """
+
     langfuse: LangfuseConfiguration = Field(
         ..., description="Configuration of the Langfuse."
     )
@@ -31,6 +38,16 @@ class _AugmentationConfiguration(BaseConfiguration):
     @field_validator("query_engine")
     @classmethod
     def _validate_query_engine(cls, value: Any, info: ValidationInfo) -> Any:
+        """
+        Validates the query engine configuration using the appropriate registry.
+
+        Args:
+            value: The query engine configuration value to validate
+            info: Validation context information provided by Pydantic
+
+        Returns:
+            The validated query engine configuration
+        """
         return super()._validate(
             value,
             info=info,
@@ -39,6 +56,13 @@ class _AugmentationConfiguration(BaseConfiguration):
 
 
 class AugmentationConfiguration(EmbeddingConfiguration):
+    """
+    Main configuration class for the augmentation module.
+
+    Extends the base embedding configuration with additional augmentation-specific
+    settings to provide a complete configuration for text augmentation processes.
+    """
+
     augmentation: _AugmentationConfiguration = Field(
         ..., description="Configuration of the augmentation process."
     )

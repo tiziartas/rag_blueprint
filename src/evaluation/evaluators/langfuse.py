@@ -19,17 +19,10 @@ from evaluation.evaluators.ragas import RagasEvaluator, RagasEvaluatorFactory
 
 
 class LangfuseEvaluator:
-    """Evaluator for tracking RAG performance in Langfuse.
+    """Evaluator that tracks RAG performance metrics in Langfuse.
 
-    Combines query engine execution with RAGAS evaluation and
-    uploads results to Langfuse for monitoring.
-
-    Attributes:
-        query_engine: Engine for generating responses
-        ragas_evaluator: Evaluator for quality metrics
-        langfuse_dataset_service: Service for dataset access
-        run_name: Name of evaluation run
-        run_metadata: Additional run context
+    Integrates query engine execution with RAGAS evaluation and
+    publishes quality metrics to Langfuse for monitoring and analysis.
     """
 
     def __init__(
@@ -39,13 +32,13 @@ class LangfuseEvaluator:
         ragas_evaluator: RagasEvaluator,
         run_metadata: dict,
     ) -> None:
-        """Initialize Langfuse evaluator.
+        """Initialize the Langfuse evaluator with required components.
 
         Args:
-            query_engine: Engine for response generation
-            langfuse_dataset_service: Dataset access service
-            ragas_evaluator: Quality metrics evaluator
-            run_metadata: Run context information
+            query_engine: The query engine that will generate responses
+            langfuse_dataset_service: Service to retrieve evaluation datasets
+            ragas_evaluator: Component to calculate quality metrics
+            run_metadata: Dictionary containing metadata about the evaluation run
         """
         self.query_engine = query_engine
         self.ragas_evaluator = ragas_evaluator
@@ -54,14 +47,17 @@ class LangfuseEvaluator:
         self.run_metadata = run_metadata
 
     def evaluate(self, dataset_name: str) -> None:
-        """Evaluate dataset and record results in Langfuse.
+        """Run evaluation on a dataset and record results in Langfuse.
+
+        Processes each item in the dataset, generates responses using the query engine,
+        calculates evaluation metrics, and uploads all results to Langfuse for monitoring.
 
         Args:
-            dataset_name: Name of dataset to evaluate
+            dataset_name: Identifier of the dataset to evaluate
 
         Note:
-            Uploads scores for answer relevancy, context recall,
-            faithfulness and harmfulness when available.
+            Records scores for answer relevancy, context recall, faithfulness, and
+            harmfulness metrics when they are available (not NaN values).
         """
         langfuse_dataset = self.langfuse_dataset_service.get_dataset(
             dataset_name
@@ -102,12 +98,26 @@ class LangfuseEvaluator:
 
 
 class LangfuseEvaluatorFactory(Factory):
+    """Factory for creating LangfuseEvaluator instances.
+
+    Creates properly configured evaluators based on the provided configuration.
+    """
+
     _configuration_class: Type = EvaluationConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: EvaluationConfiguration
     ) -> LangfuseEvaluator:
+        """Create a new LangfuseEvaluator instance.
+
+        Args:
+            configuration: Complete evaluation configuration containing
+                           settings for the query engine, datasets, and metrics
+
+        Returns:
+            A fully configured LangfuseEvaluator instance ready for evaluation
+        """
         query_engine = QueryEngineRegistry.get(
             configuration.augmentation.query_engine.name
         ).create(configuration)

@@ -10,7 +10,19 @@ from core.base_configuration import BaseSecrets
 
 
 class OpenAILLMConfiguration(LLMConfiguration):
+    """Configuration for OpenAI language models.
+
+    This class extends the base LLMConfiguration to provide OpenAI-specific
+    configuration options and secrets management.
+    """
+
     class Secrets(BaseSecrets):
+        """Secrets configuration for OpenAI API authentication.
+
+        Contains sensitive information required to authenticate with the OpenAI API.
+        Values can be provided through environment variables with the prefix RAG__LLMS__OPENAI__.
+        """
+
         model_config = ConfigDict(
             env_file_encoding="utf-8",
             env_prefix="RAG__LLMS__OPENAI__",

@@ -10,10 +10,19 @@ from extraction.bootstrap.configuration.datasources import (
 
 
 class OrchestratorName(str, Enum):
+    """
+    Enum representing the available orchestrators for extraction.
+    """
+
     BASIC = "basic"
 
 
 class _ExtractionConfiguration(BaseConfiguration):
+    """
+    Configuration class for extraction settings.
+    Defines the orchestrator and data sources to be used.
+    """
+
     orchestrator_name: OrchestratorName = Field(
         OrchestratorName.BASIC, description="The orchestrator name."
     )
@@ -27,6 +36,16 @@ class _ExtractionConfiguration(BaseConfiguration):
     def _validate_datasources(
         cls, value: List[Any], info: ValidationInfo
     ) -> List[Any]:
+        """
+        Validates the datasources configuration against registered configuration schemas.
+
+        Args:
+            value: List of datasource configurations to validate
+            info: Validation context information
+
+        Returns:
+            List of validated datasource configuration objects
+        """
         return super()._validate(
             value,
             info=info,
@@ -35,6 +54,11 @@ class _ExtractionConfiguration(BaseConfiguration):
 
 
 class ExtractionConfiguration(BasicConfiguration):
+    """
+    Main configuration class for the extraction system.
+    Extends the BasicConfiguration with extraction-specific settings.
+    """
+
     extraction: _ExtractionConfiguration = Field(
         ..., description="Extraction configuration."
     )

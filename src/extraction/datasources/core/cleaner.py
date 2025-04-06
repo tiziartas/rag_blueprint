@@ -5,43 +5,40 @@ from extraction.datasources.core.document import DocType
 
 
 class BaseCleaner(ABC, Generic[DocType]):
-    """Abstract base class defining document cleaning interface.
+    """Abstract base class for document cleaning operations.
 
-    Provides interface for cleaning document collections with type safety
-    through generic typing.
-
-    Attributes:
-        None
+    Defines the interface for document cleaners with generic type support
+    to ensure type safety across different document implementations.
     """
 
     @abstractmethod
     def clean(self, document: DocType) -> DocType:
-        """Clean a list of documents.
+        """Clean a single document.
 
         Args:
-            document: List of documents to clean
+            document: The document to be cleaned
 
         Returns:
-            DocType: List of cleaned documents
+            The cleaned document or None if document should be filtered out
         """
         pass
 
 
 class BasicMarkdownCleaner(BaseCleaner, Generic[DocType]):
-    """Generic document cleaner implementation.
+    """Document cleaner for basic content validation.
 
-    Removes empty documents from collections while tracking progress.
-    Supports any document type with a text attribute.
+    Checks for empty content in documents and filters them out.
+    Works with any document type that has a text attribute.
     """
 
     def clean(self, document: DocType) -> DocType:
-        """Remove empty documents from collection.
+        """Remove document if it contains empty content.
 
         Args:
-            documents: List of documents to clean
+            document: The document to validate
 
         Returns:
-            DocType: Filtered list containing only non-empty documents
+            The original document if content is not empty, None otherwise
         """
         if not self._has_empty_content(document):
             return document
@@ -50,12 +47,12 @@ class BasicMarkdownCleaner(BaseCleaner, Generic[DocType]):
 
     @staticmethod
     def _has_empty_content(document: DocType) -> bool:
-        """Check if document has empty content.
+        """Check if document content is empty.
 
         Args:
-            document: Document to check (must have text attribute)
+            document: Document to check (must have a text attribute)
 
         Returns:
-            bool: True if document text is empty after stripping whitespace
+            True if document's text is empty or contains only whitespace
         """
         return not document.text.strip()

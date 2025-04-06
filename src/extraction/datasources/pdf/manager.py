@@ -22,14 +22,22 @@ class PDFDatasourceManagerFactory(Factory):
     def _create_instance(
         cls, configuration: PDFDatasourceConfiguration
     ) -> BasicDatasourceManager:
-        """Create datasource manager instance.
+        """Create an instance of the PDF datasource manager.
+
+        This method constructs a BasicDatasourceManager by creating the appropriate
+        reader and parser based on the provided configuration.
 
         Args:
-            configuration: ExtractionConfiguration object for datasource manager
+            configuration: Configuration specifying how to set up the PDF datasource
+                          manager, reader, and parser.
 
         Returns:
-            BasicDatasourceManager: Datasource manager instance
+            A configured BasicDatasourceManager instance for handling PDF documents.
         """
         reader = PDFDatasourceReaderFactory.create(configuration)
         parser = PDFDatasourceParserFactory.create(configuration)
-        return BasicDatasourceManager(configuration, reader, parser)
+        return BasicDatasourceManager(
+            configuration=configuration,
+            reader=reader,
+            parser=parser,
+        )

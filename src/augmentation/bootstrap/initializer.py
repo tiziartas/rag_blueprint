@@ -14,12 +14,30 @@ from embedding.bootstrap.initializer import (
 
 
 class AugmentationPackageLoader(EmbeddingPackageLoader):
+    """Package loader for augmentation components.
+
+    Extends the EmbeddingPackageLoader to load additional packages required
+    for the augmentation process, including LLMs, synthesizers, retrievers,
+    postprocessors, and query engines.
+    """
+
     def __init__(
         self, logger: logging.Logger = LoggerConfiguration.get_logger(__name__)
     ):
+        """Initialize the AugmentationPackageLoader.
+
+        Args:
+            logger: Logger instance for logging information. Defaults to a logger
+                   configured with the current module name.
+        """
         super().__init__(logger)
 
     def load_packages(self) -> None:
+        """Load all required packages for augmentation.
+
+        Calls the parent class's load_packages method first to load embedding packages,
+        then loads additional packages specific to augmentation.
+        """
         super().load_packages()
         self._load_packages(
             [
@@ -33,15 +51,15 @@ class AugmentationPackageLoader(EmbeddingPackageLoader):
 
 
 class AugmentationInitializer(EmbeddingInitializer):
-    """Common initializer for embedding, augmentation and evaluation processes.
+    """Initializer for the augmentation process.
+
+    Extends the EmbeddingInitializer to set up the environment for augmentation tasks.
+    This initializer is responsible for loading the required configuration and
+    registering all necessary components with the dependency injection container.
 
     Multiple components are used in the embedding, augmentation and evaluation processes.
     To avoid code duplication, this initializer is used to bind the components to the injector.
     It is intended to be subclassed by the specific initializers for each process.
-
-    Attributes:
-        configuration: Configuration object
-        configuration_json: Configuration JSON string
     """
 
     def __init__(
@@ -51,6 +69,14 @@ class AugmentationInitializer(EmbeddingInitializer):
         ] = AugmentationConfiguration,
         package_loader: BasePackageLoader = AugmentationPackageLoader(),
     ):
+        """Initialize the AugmentationInitializer.
+
+        Args:
+            configuration_class: The configuration class to use for loading settings.
+                                Defaults to AugmentationConfiguration.
+            package_loader: Package loader instance responsible for loading required packages.
+                           Defaults to a new AugmentationPackageLoader instance.
+        """
         super().__init__(
             configuration_class=configuration_class,
             package_loader=package_loader,

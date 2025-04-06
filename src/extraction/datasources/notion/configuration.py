@@ -19,20 +19,21 @@ class NotionDatasourceConfiguration(DatasourceConfiguration):
         )
 
         api_token: SecretStr = Field(
-            ..., description="The token for the notion data source"
+            ..., description="Authentication token for accessing the Notion API"
         )
 
     name: Literal[DatasourceName.NOTION] = Field(
-        ..., description="The name of the data source."
+        ..., description="Identifier specifying this as a Notion datasource"
     )
     home_page_database_id: Optional[str] = Field(
         None,
-        description="Notion home page database id used for extraction of pages and database. If null, this extraction will be skipped.",
+        description="ID of the root Notion database from which pages and child databases will be extracted; extraction is skipped if not provided",
     )
     export_batch_size: int = Field(
         3,
-        description="Number of pages being exported ansychronously. Decrease to avoid NotionAPI rate limits, smaller batch slows the export down.",
+        description="Maximum number of pages to export concurrently; controls throughput vs. rate limit compliance",
     )
     secrets: Secrets = Field(
-        None, description="The secrets for the data source."
+        None,
+        description="Authentication credentials required for connecting to Notion API",
     )

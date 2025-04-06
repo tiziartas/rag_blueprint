@@ -20,14 +20,8 @@ class BasicMarkdownSplitter(BaseSplitter, Generic[DocType]):
     """Splitter for markdown documents with token-based chunking.
 
     Splits markdown content into nodes based on document structure and
-    token limits. Supports node merging and splitter to maintain
+    token limits. Supports node merging and splitting to maintain
     consistent chunk sizes.
-
-    Attributes:
-        chunk_size_in_tokens: Maximum tokens per chunk
-        tokenize_func: Function to convert text to tokens
-        markdown_node_parser: Parser for markdown structure
-        sentence_splitter: Splitter for text chunks
     """
 
     def __init__(
@@ -41,7 +35,7 @@ class BasicMarkdownSplitter(BaseSplitter, Generic[DocType]):
         Args:
             chunk_size_in_tokens: Maximum tokens per chunk
             chunk_overlap_in_tokens: Token overlap between chunks
-            tokenize_func: Function to tokenize text
+            tokenize_func: Function to tokenize text for token counting
         """
         self.chunk_size_in_tokens = chunk_size_in_tokens
         self.tokenize_func = tokenize_func
@@ -56,14 +50,15 @@ class BasicMarkdownSplitter(BaseSplitter, Generic[DocType]):
     def split(self, document: DocType) -> TextNode:
         """Split markdown documents into text nodes.
 
-        Processes documents through markdown parsing, then adjusts node sizes
-        through splitter and merging to match chunk size requirements.
+        Split markdown document by markdown tags, then adjusts node sizes
+        through splitting large nodes and merging small nodes to optimize
+        for the target chunk size.
 
         Args:
-            documents: Collection of markdown documents
+            document: Markdown document to be processed
 
         Returns:
-            List[TextNode]: Collection of processed text nodes
+            List[TextNode]: Collection of processed text nodes with optimized sizes
         """
         document_nodes = self.markdown_node_parser.get_nodes_from_documents(
             [document]
@@ -78,11 +73,15 @@ class BasicMarkdownSplitter(BaseSplitter, Generic[DocType]):
     ) -> List[TextNode]:
         """Split oversized nodes into smaller chunks.
 
+        Identifies nodes exceeding the token limit and processes them
+        through the sentence splitter to create smaller, semantically
+        coherent chunks.
+
         Args:
             document_nodes: Collection of nodes to process
 
         Returns:
-            List[TextNode]: Processed nodes within size limits
+            List[TextNode]: Processed nodes within token size limits
         """
         new_document_nodes = []
 
@@ -101,11 +100,15 @@ class BasicMarkdownSplitter(BaseSplitter, Generic[DocType]):
     def _split_big_node(self, document_node: TextNode) -> List[TextNode]:
         """Split single oversized node into smaller nodes.
 
+        Uses sentence boundary detection to create semantically meaningful
+        smaller chunks from a large node, preserving metadata from the
+        original node.
+
         Args:
-            document_node: Node to split
+            document_node: Node exceeding token size limit
 
         Returns:
-            List[TextNode]: Collection of smaller nodes
+            List[TextNode]: Collection of smaller nodes derived from original
         """
         text = document_node.text
         sub_texts = self.sentence_splitter.split_text(text)
@@ -124,11 +127,15 @@ class BasicMarkdownSplitter(BaseSplitter, Generic[DocType]):
     ) -> List[TextNode]:
         """Merge adjacent small nodes into larger chunks.
 
+        Combines consecutive nodes when their combined token count remains
+        under the maximum limit, optimizing for fewer, larger chunks
+        while respecting token boundaries.
+
         Args:
-            document_nodes: Collection of nodes to process
+            document_nodes: Collection of nodes to potentially merge
 
         Returns:
-            List[TextNode]: Collection of merged nodes
+            List[TextNode]: Optimized collection with merged nodes
         """
         new_document_nodes = []
         current_node = document_nodes[0]
@@ -150,12 +157,32 @@ class BasicMarkdownSplitter(BaseSplitter, Generic[DocType]):
 
 
 class BasicMarkdownSplitterFactory(Factory):
+    """Factory for creating BasicMarkdownSplitter instances.
+
+    Creates splitter instances configured according to the provided
+    embedding model configuration.
+    """
+
     _configuration_class: Type = EmbeddingModelConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: EmbeddingModelConfiguration
     ) -> BasicMarkdownSplitter:
+        """Create a BasicMarkdownSplitter instance from configuration.
+
+        Validates the configuration, retrieves the appropriate tokenizer,
+        and instantiates a properly configured splitter.
+
+        Args:
+            configuration: Embedding model configuration containing splitter settings
+
+        Returns:
+            BasicMarkdownSplitter: Configured splitter instance
+
+        Raises:
+            ValueError: If the configuration lacks proper splitter settings
+        """
         if not configuration.splitter or not isinstance(
             configuration.splitter, BasicMarkdownSplitterConfiguration
         ):

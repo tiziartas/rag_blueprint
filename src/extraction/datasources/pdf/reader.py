@@ -21,6 +21,7 @@ class PDFDatasourceReader(BaseReader):
 
         Args:
             configuration: Settings for PDF processing
+            logger: Logger instance for logging messages
         """
         super().__init__()
         self.export_limit = configuration.export_limit
@@ -28,13 +29,13 @@ class PDFDatasourceReader(BaseReader):
         self.logger = logger
 
     async def read_all_async(self) -> AsyncIterator[str]:
-        """Load documents asynchronously from configured path.
+        """Asynchronously yield PDF file paths from the configured directory.
+
+        Retrieves a list of PDF files from the base path, applies any configured
+        export limit, and yields each file path individually.
 
         Returns:
-            List[PDFDocument]: Collection of processed documents
-
-        Note:
-            Currently calls synchronous implementation
+            AsyncIterator[str]: An asynchronous iterator of PDF file paths
         """
         self.logger.info(
             f"Fetching PDF files from '{self.base_path}' with limit {self.export_limit}"
@@ -60,7 +61,8 @@ class PDFDatasourceReader(BaseReader):
 class PDFDatasourceReaderFactory(Factory):
     """Factory for creating PDF reader instances.
 
-    Provides factory method to create configured PDFDatasourceReader objects.
+    Implements the factory pattern to produce configured PDFDatasourceReader
+    objects based on the provided configuration settings.
     """
 
     _configuration_class: Type = PDFDatasourceConfiguration
@@ -69,12 +71,13 @@ class PDFDatasourceReaderFactory(Factory):
     def _create_instance(
         cls, configuration: PDFDatasourceConfiguration
     ) -> PDFDatasourceReader:
-        """Creates a configured PDF reader.
+        """Create a new PDFDatasourceReader with the specified configuration.
 
         Args:
-            configuration: Settings for PDF processing
+            configuration: Settings that control PDF processing behavior including
+                           base path and export limits
 
         Returns:
-            PDFDatasourceReader: Configured reader instance
+            PDFDatasourceReader: A fully configured reader instance ready for use
         """
         return PDFDatasourceReader(configuration=configuration)

@@ -16,6 +16,17 @@ from embedding.vector_stores.registry import (
 
 
 def register() -> None:
+    """
+    Register QDrant vector store components with the respective registries.
+
+    This function registers:
+    1. QDrantVectorStoreConfiguration with the VectorStoreConfigurationRegistry
+    2. QdrantVectorStoreFactory with the VectorStoreRegistry
+    3. QdrantVectorStoreValidatorFactory with the VectorStoreValidatorRegistry
+
+    This registration enables the application to create, configure, and validate
+    QDrant vector store instances through the common registry interfaces.
+    """
     VectorStoreConfigurationRegistry.register(
         VectorStoreName.QDRANT,
         QDrantVectorStoreConfiguration,

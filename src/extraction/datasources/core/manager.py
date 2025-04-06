@@ -20,13 +20,11 @@ from extraction.datasources.core.splitter import (
 class BaseDatasourceManager(ABC, Generic[DocType]):
     """Abstract base class for datasource management.
 
-    Provides interface for content extraction and vector storage updates.
-
-    Attributes:
-        configuration: Settings for embedding and processing
-        reader: Component for reading source content
-        cleaner: Component for cleaning extracted content
-        splitter: Component for splitting content into chunks
+    Defines the interface for managing the extraction, parsing,
+    cleaning, and splitting of documents from a data source.
+    This class serves as a template for implementing specific
+    datasource managers, ensuring a consistent interface and
+    behavior across different implementations.
     """
 
     def __init__(
@@ -55,35 +53,45 @@ class BaseDatasourceManager(ABC, Generic[DocType]):
     async def full_refresh_sync(
         self,
     ) -> AsyncIterator[DocType]:
-        """Extract and process content from datasource.
+        """Extract and process all content from the datasource.
 
         Returns:
-            MD docs
+            An async iterator yielding processed document chunks of type DocType
         """
         pass
 
     @abstractmethod
     def incremental_sync(self):
-        """Update vector storage with current embeddings."""
+        """Process only new or changed content from the datasource.
+
+        This method should handle differential updates to avoid
+        reprocessing all content when only portions have changed.
+        Implementations should update the vector storage accordingly.
+        """
         pass
 
 
 class BasicDatasourceManager(BaseDatasourceManager, Generic[DocType]):
-    """Manager for datasource content processing and embedding.
+    """Standard implementation of datasource content processing pipeline.
 
-    Implements content extraction pipeline using configurable components
-    for reading, cleaning, splitting and embedding content.
+    Handles the extraction, parsing, cleaning, and splitting of documents
+    from a data source. Processes documents using the provided components
+    in a sequential pipeline to prepare them for embedding and storage.
     """
 
     async def full_refresh_sync(
         self,
     ) -> AsyncIterator[DocType]:
-        """Extract and process content from datasource.
+        """Process all content from the datasource from scratch.
+
+        Executes the complete pipeline:
+        1. Reads source objects asynchronously
+        2. Parses each object into a document
+        3. Cleans the content
+        4. Splits into appropriate chunks
 
         Returns:
-            Tuple containing:
-                - List of raw documents
-                - List of cleaned documents
+            An async iterator yielding processed document chunks of type DocType
         """
         objects = self.reader.read_all_async()
         async for object in objects:
@@ -94,9 +102,12 @@ class BasicDatasourceManager(BaseDatasourceManager, Generic[DocType]):
                     yield split_document
 
     def incremental_sync(self):
-        """Update vector storage with current embeddings.
+        """Process only new or changed content since the last sync.
+
+        Should be implemented by subclasses to provide efficient
+        updates when only a portion of the datasource has changed.
 
         Raises:
-            NotImplementedError: Method must be implemented by subclasses
+            NotImplementedError: This feature is not yet implemented
         """
         raise NotImplementedError("Currently unsupported feature.")

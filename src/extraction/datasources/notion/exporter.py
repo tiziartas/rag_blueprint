@@ -38,25 +38,50 @@ retry_decorator = retry(
 
 
 class _PropertyConverter(PropertyConverter):
+    """Custom property converter for Notion properties.
+
+    Extends the base PropertyConverter with additional handling for verification
+    properties and error handling for all property conversions.
+    """
 
     def __init__(
         self,
         notion_exporter: NotionExporterCore,
         logger: logging.Logger = LoggerConfiguration.get_logger(__name__),
     ):
+        """
+        Initialize the property converter.
+
+        Args:
+            notion_exporter: Instance of NotionExporterCore for property conversion
+            logger: Logger instance for logging messages
+        """
         super().__init__(notion_exporter)
         self.type_specific_converters["verification"] = self.verification
         self.logger = logger
 
     def verification(self, property_item: dict) -> str:
-        """
-        Converts a verification property to a Markdown string.
+        """Convert a verification property to a Markdown string.
+
+        Args:
+            property_item: Notion verification property object
+
+        Returns:
+            String representation of the verification state
         """
         return property_item["verification"]["state"]
 
     def convert_property(self, property_item: dict) -> str:
-        """
-        Converts a Notion property to a Markdown string.
+        """Convert a Notion property to a Markdown string.
+
+        Adds error handling around the base conversion method to prevent
+        failures when encountering unexpected property formats.
+
+        Args:
+            property_item: Notion property object
+
+        Returns:
+            Markdown string representation of the property
         """
         try:
             return super().convert_property(property_item)
@@ -68,18 +93,39 @@ class _PropertyConverter(PropertyConverter):
 
 
 class _BlockConverter(BlockConverter):
+    """Custom block converter for Notion blocks.
+
+    Extends the base BlockConverter with additional error handling
+    for block conversions.
+    """
 
     def __init__(
         self, logger: logging.Logger = LoggerConfiguration.get_logger(__name__)
     ):
+        """
+        Initialize the block converter.
+
+        Args:
+            logger: Logger instance for logging messages
+        """
         super().__init__()
         self.logger = logger
 
     def convert_block(
         self, block: dict, indent: bool = False, indent_level: int = 0
     ) -> str:
-        """
-        Converts a block to a Markdown string.
+        """Convert a block to a Markdown string.
+
+        Adds error handling around the base conversion method to prevent
+        failures when encountering unexpected block formats.
+
+        Args:
+            block: Notion block object
+            indent: Whether to indent the block content
+            indent_level: Level of indentation
+
+        Returns:
+            Markdown string representation of the block
         """
         try:
             return super().convert_block(block, indent, indent_level)
@@ -91,9 +137,10 @@ class _BlockConverter(BlockConverter):
 
 
 class _NotionExporterCore(NotionExporterCore):
-    """
-    Custom version of `notion_exporter.exporter.NotionExporter`. Modifications are related to metadata parsing and asynchronous execution.
-    Large amount of code corresponds to the original implementation. Modifications are marked with `Custom modification` comments.
+    """Custom version of NotionExporter with metadata parsing and async execution.
+
+    Extends the base NotionExporterCore with modifications for metadata handling,
+    user data exclusion, and asynchronous content extraction.
     """
 
     def __init__(
@@ -116,14 +163,16 @@ class _NotionExporterCore(NotionExporterCore):
 
     @retry_decorator
     async def _get_page_meta(self, page_id: str) -> dict:
-        """
-        Retrieve metadata of a page from Notion.
-        Custom modification:
-            - Remove `created_by` and `last_edited_by` calls.
-            - Add `created_time`, `type` and `format`.
+        """Retrieve metadata of a page from Notion.
 
-        :param page_id: The ID of the page.
-        :return: A dictionary containing metadata of the page.
+        Gets page metadata without user-related information and adds additional
+        fields like created_time, type, and format.
+
+        Args:
+            page_id: ID of the Notion page
+
+        Returns:
+            Dictionary containing page metadata
         """
         page_object = await self.notion.pages.retrieve(page_id)
         # Custom modification ---
@@ -180,14 +229,16 @@ class _NotionExporterCore(NotionExporterCore):
 
     @retry_decorator
     async def _get_database_meta(self, database_id: str) -> dict:
-        """
-        Retrieve metadata of a database from Notion.
-        Custom modification:
-            - Remove `created_by` and `last_edited_by` calls.
-            - Add `created_time`, `type` and `format`.
+        """Retrieve metadata of a database from Notion.
 
-        :param database_id: The ID of the database.
-        :return: A dictionary containing metadata of the database.
+        Gets database metadata without user-related information and adds additional
+        fields like created_time, type, and format.
+
+        Args:
+            database_id: ID of the Notion database
+
+        Returns:
+            Dictionary containing database metadata
         """
         try:
             database_object = await self.notion.databases.retrieve(database_id)
@@ -246,6 +297,17 @@ class _NotionExporterCore(NotionExporterCore):
     async def _get_database_content(
         self, database_id: str
     ) -> tuple[str, set[str]]:
+        """Extract database content as a markdown table.
+
+        Retrieves database structure and entries, converting them into a
+        markdown table representation.
+
+        Args:
+            database_id: ID of the Notion database
+
+        Returns:
+            Tuple containing markdown content and a set of entry IDs
+        """
         try:
             database = await self.notion.databases.retrieve(database_id)
             database_entries = await async_collect_paginated_api(
@@ -300,12 +362,18 @@ class _NotionExporterCore(NotionExporterCore):
         database_ids: Optional[list[str]] = None,
         ids_to_exclude: Optional[list[str]] = None,
     ) -> dict[str, str]:
-        """
-        Export pages and databases to markdown files.
+        """Export pages and databases to markdown.
 
-        :param page_ids: List of page IDs to export.
-        :param database_ids: List of database IDs to export.
-        :param ids_to_exclude: List of IDs to ignore.
+        Args:
+            page_ids: List of page IDs to export
+            database_ids: List of database IDs to export
+            ids_to_exclude: List of IDs to ignore
+
+        Returns:
+            Dictionary mapping page IDs to extracted content and metadata
+
+        Raises:
+            ValueError: If neither page_ids nor database_ids provided
         """
         if page_ids is None and database_ids is None:
             raise ValueError(
@@ -342,12 +410,20 @@ class _NotionExporterCore(NotionExporterCore):
         parent_page_ids: Optional[dict] = None,
         page_paths: Optional[dict] = None,
     ):
-        """
-        Export pages and databases to markdown format.
+        """Export pages and databases to markdown format recursively.
 
-        :param page_ids: List of page IDs to export.
-        :param database_ids: List of database IDs to export.
-        :param ids_to_exclude: List of IDs to ignore.
+        Core implementation that handles the recursive export of pages,
+        databases, and their children.
+
+        Args:
+            page_ids: Set of page IDs to export
+            database_ids: Set of database IDs to export
+            ids_to_exclude: Set of IDs to ignore
+            parent_page_ids: Dictionary mapping child IDs to parent IDs
+            page_paths: Dictionary mapping page IDs to paths
+
+        Returns:
+            Tuple containing extracted pages, child page IDs, and child database IDs
         """
         if ids_to_exclude is None:
             ids_to_exclude = set()
@@ -461,11 +537,8 @@ class _NotionExporterCore(NotionExporterCore):
 class NotionExporter:
     """Exporter for converting Notion pages to markdown documents.
 
-    Handles extraction and conversion of Notion pages and databases
-    to NotionDocument instances with markdown content.
-
-    Attributes:
-        notion_exporter: Core exporter instance for content extraction
+    Provides a high-level interface for extracting Notion content
+    and converting it to structured NotionDocument instances.
     """
 
     def __init__(
@@ -488,12 +561,15 @@ class NotionExporter:
     ) -> List[NotionDocument]:
         """Export Notion content to document collection.
 
+        Extracts content from specified pages and databases and
+        converts them to structured document objects.
+
         Args:
             page_ids: List of page IDs to export
             database_ids: List of database IDs to export
 
         Returns:
-            List[NotionDocument]: Collection of exported documents
+            List of NotionDocument objects containing content and metadata
 
         Raises:
             ValueError: If neither page_ids nor database_ids provided
@@ -517,9 +593,8 @@ class NotionExporter:
 class NotionExporterFactory(SingletonFactory):
     """Factory for creating NotionExporter instances.
 
-    This factory ensures that only one instance of NotionExporter is created
-    and reused across the application. It provides a method to get the exporter
-    instance, which is initialized with the provided API token.
+    Ensures only one instance of NotionExporter is created and reused
+    throughout the application, following the singleton pattern.
     """
 
     _configuration_class = NotionDatasourceConfiguration
@@ -528,6 +603,14 @@ class NotionExporterFactory(SingletonFactory):
     def _create_instance(
         cls, configuration: NotionDatasourceConfiguration
     ) -> NotionExporter:
+        """Create a NotionExporter instance with the given configuration.
+
+        Args:
+            configuration: Configuration containing Notion API token
+
+        Returns:
+            Configured NotionExporter instance
+        """
         return NotionExporter(
             configuration.secrets.api_token.get_secret_value()
         )

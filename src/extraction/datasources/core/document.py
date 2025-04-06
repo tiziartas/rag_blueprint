@@ -23,7 +23,7 @@ class BaseDocument(Document):
     """
 
     attachments: Optional[Dict[str, str]] = Field(
-        description="Attachments of the document. Key is the attachment placeholder in raw_content and value is the Attachment object",
+        description="Document attachments with placeholders as keys and content as values",
         default=None,
     )
 
@@ -40,12 +40,9 @@ class BaseDocument(Document):
     ]
 
     def __init__(self, text: str, metadata: dict, attachments: dict = None):
-        """Initialize PDF document.
+        """Initialize a document with text, metadata, and optional attachments.
 
-        Args:
-            text: Extracted text content in markdown format
-            metadata: Metadata dictionary
-            attachments: Optional dictionary of attachments
+        Sets up excluded metadata keys for embedding and LLM contexts.
         """
         super().__init__(text=text, metadata=metadata)
         self.attachments = attachments or {}
@@ -60,16 +57,8 @@ class BaseDocument(Document):
     def _set_excluded_metadata_keys(
         metadata: dict, included_keys: List[str]
     ) -> List[str]:
-        """Determine metadata keys to exclude from processing.
+        """Identify metadata keys to exclude from processing.
 
-        Args:
-            metadata: Complete metadata dictionary
-            included_keys: Keys to include in processing
-
-        Returns:
-            List[str]: Keys that should be excluded
-
-        Note:
-            Returns any key from metadata that isn't in included_keys
+        Returns all keys from metadata that aren't in the included_keys list.
         """
         return [key for key in metadata.keys() if key not in included_keys]

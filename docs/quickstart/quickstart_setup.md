@@ -4,12 +4,12 @@ This guide outlines the steps to set up and deploy the RAG system on your server
 
 Requirements:
 
- - Python 3.12
+ - Python >=3.10,<3.13
  - Docker
 
 ## Configuration & Secrets
 
-The default configuration is located in [configuration.default.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.default.json). This file configures toy PDF dataset as the document datasource and defines default settings for embedding, augmentation, and evaluation stages. To customize the setup, refer to the configuration [Configuration Setup](../how_to/how_to_configure.md).
+The default configuration is located in [configuration.default.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.default.json). This file configures toy PDF dataset as the document datasource and defines default settings for embedding, augmentation, and evaluation stages. To customize the setup, refer to the [How to Configure the RAG System](../how_to/how_to_configure.md) guide.
 
 ### Secrets Configuration
 Create a secrets file at `configurations/secrets.default.env`. Below is a template:
@@ -59,7 +59,7 @@ build/workstation/init.sh --env default
 
 **_NOTE:_**  Depending on your OS and the setup you might need to give execute permission to the initialization script e.g. `chmod u+x build/workstation/init.sh`
 
-Once initialized, access the Langfuse web server on your localhost (port defined in [configuration.default.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.default.json) under `pipeline.augmentation.langfuse.port`). Use the Langfuse UI to:
+Once initialized, access the Langfuse web server on your localhost (port defined in [configuration.default.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.default.json) under `augmentation.langfuse.port`). Use the Langfuse UI to:
 
 1. Create a user.
 2. Set up a project for the application.

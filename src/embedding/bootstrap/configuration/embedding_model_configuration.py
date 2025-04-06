@@ -11,6 +11,11 @@ from embedding.bootstrap.configuration.splitting_configuration import (
 
 # Enums
 class EmbeddingModelProviderName(str, Enum):
+    """Enumeration of supported embedding model providers.
+
+    This enum lists all the providers that can be used for embedding models.
+    """
+
     HUGGING_FACE = "hugging_face"
     OPENAI = "openai"
     VOYAGE = "voyage"
@@ -18,6 +23,13 @@ class EmbeddingModelProviderName(str, Enum):
 
 # Configuration
 class EmbeddingModelConfiguration(BaseConfigurationWithSecrets):
+    """Configuration class for embedding models.
+
+    This class defines the necessary parameters and settings for configuring
+    an embedding model, including provider information, model name, and
+    tokenization settings.
+    """
+
     provider: EmbeddingModelProviderName = Field(
         ..., description="The provider of the embedding model."
     )
@@ -35,6 +47,18 @@ class EmbeddingModelConfiguration(BaseConfigurationWithSecrets):
     @field_validator("splitter")
     @classmethod
     def _validate_splitter(cls, value: Any, info: ValidationInfo) -> Any:
+        """Validate the splitter configuration.
+
+        This method ensures that the provided splitter configuration is valid
+        according to the SplitterConfigurationRegistry.
+
+        Args:
+            value: The splitter configuration value to validate.
+            info: Validation context information.
+
+        Returns:
+            The validated splitter configuration.
+        """
         return super()._validate(
             value,
             info=info,
@@ -43,4 +67,10 @@ class EmbeddingModelConfiguration(BaseConfigurationWithSecrets):
 
 
 class EmbeddingModelConfigurationRegistry(ConfigurationRegistry):
+    """Registry for embedding model configurations.
+
+    This registry maps embedding model provider names to their
+    respective configuration classes.
+    """
+
     _key_class: Type = EmbeddingModelProviderName

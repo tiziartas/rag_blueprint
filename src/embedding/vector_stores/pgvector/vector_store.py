@@ -9,7 +9,11 @@ from embedding.vector_stores.pgvector.configuration import (
 
 
 class PGVectorStoreFactory(SingletonFactory):
-    """Factory for creating configured Qdrant clients."""
+    """Factory for creating configured PostgreSQL vector store clients.
+
+    This factory creates and manages a singleton instance of PGVectorStore
+    for vector similarity search using the pgvector extension.
+    """
 
     _configuration_class: Type = PGVectorStoreConfiguration
 
@@ -17,13 +21,13 @@ class PGVectorStoreFactory(SingletonFactory):
     def _create_instance(
         cls, configuration: PGVectorStoreConfiguration
     ) -> PGVectorStore:
-        """Creates a Qdrant client based on provided configuration.
+        """Creates a PostgreSQL vector store client based on provided configuration.
 
         Args:
-            configuration: QDrant connection configuration.
+            configuration: PostgreSQL vector store connection configuration.
 
         Returns:
-            QdrantClient: Configured client instance.
+            PGVectorStore: Configured PostgreSQL vector store instance.
         """
         return PGVectorStore.from_params(
             database=configuration.database_name,

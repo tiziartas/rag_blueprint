@@ -3337,6 +3337,12 @@ augmentation = [
     { name = "llama-index-llms-openai-like" },
     { name = "llama-index-postprocessor-colbert-rerank" },
 ]
+core = [
+    { name = "pre-commit" },
+    { name = "pydantic" },
+    { name = "pydantic-core" },
+    { name = "pydantic-settings" },
+]
 embedding = [
     { name = "chromadb" },
     { name = "llama-index-embeddings-huggingface" },
@@ -3361,12 +3367,6 @@ extraction = [
     { name = "notion-exporter" },
     { name = "tqdm" },
 ]
-utils = [
-    { name = "pre-commit" },
-    { name = "pydantic" },
-    { name = "pydantic-core" },
-    { name = "pydantic-settings" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -3390,20 +3390,20 @@ requires-dist = [
     { name = "notion", marker = "extra == 'extraction'", specifier = ">=0.0.28" },
     { name = "notion-client", marker = "extra == 'extraction'", specifier = ">=2.3.0" },
     { name = "notion-exporter", marker = "extra == 'extraction'", specifier = ">=0.1.1" },
-    { name = "pre-commit", marker = "extra == 'utils'", specifier = ">=4.1.0" },
+    { name = "pre-commit", marker = "extra == 'core'", specifier = ">=4.1.0" },
     { name = "psycopg2-binary", marker = "extra == 'embedding'", specifier = ">=2.9.10" },
-    { name = "pydantic", marker = "extra == 'utils'", specifier = ">=2.9.2" },
-    { name = "pydantic-core", marker = "extra == 'utils'", specifier = ">=2.23.4" },
-    { name = "pydantic-settings", marker = "extra == 'utils'", specifier = ">=2.2.1" },
+    { name = "pydantic", marker = "extra == 'core'", specifier = ">=2.9.2" },
+    { name = "pydantic-core", marker = "extra == 'core'", specifier = ">=2.23.4" },
+    { name = "pydantic-settings", marker = "extra == 'core'", specifier = ">=2.2.1" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-asyncio", specifier = ">=0.26.0" },
     { name = "pytest-mock", specifier = ">=3.14.0" },
     { name = "python-on-whales", specifier = ">=0.76.1" },
     { name = "rag-blueprint", extras = ["augmentation"], marker = "extra == 'all'" },
+    { name = "rag-blueprint", extras = ["core"], marker = "extra == 'all'" },
     { name = "rag-blueprint", extras = ["embedding"], marker = "extra == 'all'" },
     { name = "rag-blueprint", extras = ["evaluation"], marker = "extra == 'all'" },
     { name = "rag-blueprint", extras = ["extraction"], marker = "extra == 'all'" },
-    { name = "rag-blueprint", extras = ["utils"], marker = "extra == 'all'" },
     { name = "ragas", marker = "extra == 'evaluation'", specifier = "==0.1.14" },
     { name = "tqdm", marker = "extra == 'extraction'", specifier = ">=4.67.1" },
     { name = "transformers", marker = "extra == 'embedding'", specifier = ">=4.49.0" },

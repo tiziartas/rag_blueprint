@@ -14,12 +14,39 @@ from embedding.vector_stores.registry import VectorStoreRegistry
 
 
 class AutoRetrieverFactory(Factory):
+    """
+    Factory class for creating VectorIndexAutoRetriever instances.
+
+    This factory builds auto-retriever components that utilize LLMs to dynamically
+    construct queries for vector store retrieval based on user inputs.
+
+    Attributes:
+        _configuration_class: The configuration class for the auto retriever.
+    """
+
     _configuration_class: Type = AugmentationConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: AugmentationConfiguration
     ) -> VectorIndexAutoRetriever:
+        """
+        Creates a VectorIndexAutoRetriever instance based on the provided configuration.
+
+        This method:
+        1. Sets up the vector store using the configuration
+        2. Initializes the embedding model
+        3. Creates a VectorStoreIndex from the vector store and embedding model
+        4. Configures the LLM for the retriever
+        5. Returns a fully configured VectorIndexAutoRetriever
+
+        Args:
+            configuration: AugmentationConfiguration object containing all necessary settings
+                          for creating the retriever component
+
+        Returns:
+            VectorIndexAutoRetriever: A configured auto-retriever for dynamic query processing
+        """
         vector_store_configuration = configuration.embedding.vector_store
         vector_store = VectorStoreRegistry.get(
             vector_store_configuration.name

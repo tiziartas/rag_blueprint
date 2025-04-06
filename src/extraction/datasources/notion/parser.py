@@ -7,11 +7,25 @@ from extraction.datasources.notion.document import NotionDocument
 
 
 class NotionDatasourceParser(BaseParser[NotionDocument]):
+    """Parser for Notion content.
+
+    Transforms raw Notion page data into structured NotionDocument objects.
+    """
 
     def __init__(self):
+        """Initialize the Notion parser."""
         pass
 
     def parse(self, object: str) -> NotionDocument:
+        """Parse Notion page data into a structured document.
+
+        Args:
+            object: Dictionary containing Notion page content with 'markdown' text
+                   and 'metadata' information.
+
+        Returns:
+            A NotionDocument containing the parsed content and enhanced metadata.
+        """
         markdown = object["markdown"]
         metadata = self._extract_metadata(object["metadata"])
         return NotionDocument(text=markdown, metadata=metadata)
@@ -35,6 +49,11 @@ class NotionDatasourceParser(BaseParser[NotionDocument]):
 
 
 class NotionDatasourceParserFactory(Factory):
+    """Factory for creating NotionDatasourceParser instances.
+
+    Creates and configures parser instances for Notion content.
+    """
+
     _configuration_class: NotionDatasourceConfiguration = (
         NotionDatasourceConfiguration
     )

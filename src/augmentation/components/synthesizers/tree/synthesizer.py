@@ -26,12 +26,34 @@ CUSTOM_PROMPT_TEMPLATE = PromptTemplate(
 
 
 class TreeSynthesizerFactory(Factory):
+    """Factory class for creating tree-based response synthesizers.
+
+    This factory creates response synthesizers that process and combine
+    information from multiple sources into coherent, tree-structured responses.
+
+    Attributes:
+        _configuration_class: The configuration class for the tree synthesizer.
+    """
+
     _configuration_class: Type = TreeSynthesizerConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: TreeSynthesizerConfiguration
     ) -> ColbertRerank:
+        """Creates a response synthesizer instance based on the provided configuration.
+
+        This method initializes a language model from the registry using the
+        configuration's LLM settings, then creates a response synthesizer with
+        the specified parameters and custom prompt template.
+
+        Args:
+            configuration: Configuration object containing response synthesizer settings
+                          including LLM provider, response mode, and streaming options.
+
+        Returns:
+            A configured response synthesizer instance.
+        """
         llm = LLMRegistry.get(configuration.llm.provider).create(
             configuration.llm
         )

@@ -16,6 +16,16 @@ from embedding.vector_stores.registry import (
 
 
 def register() -> None:
+    """
+    Registers PGVector components with the appropriate registries.
+
+    This function registers:
+    - PGVectorStoreConfiguration with the VectorStoreConfigurationRegistry
+    - PGVectorStoreFactory with the VectorStoreRegistry
+    - PGVectorStoreValidatorFactory with the VectorStoreValidatorRegistry
+
+    All components are registered under the PGVECTOR vector store name.
+    """
     VectorStoreConfigurationRegistry.register(
         VectorStoreName.PGVECTOR,
         PGVectorStoreConfiguration,

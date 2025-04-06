@@ -21,16 +21,11 @@ from evaluation.bootstrap.configuration.configuration import (
 
 
 class RagasEvaluator:
-    """Evaluator for RAG system quality using RAGAS.
+    """Evaluator for RAG system quality using RAGAS framework.
 
-    Wraps LlamaIndex LLM and embedding models for use with RAGAS
-    evaluation framework. Supports multiple evaluation metrics.
-
-    Attributes:
-        judge_llm: Wrapped LLM for evaluations
-        embedding_model: Wrapped embeddings for metrics
-        evaluator_function: Function to run evaluations
-        metrics: List of RAGAS metrics to evaluate
+    Provides automatic evaluation of RAG pipeline quality using multiple
+    metrics from the RAGAS evaluation framework. Evaluates answer relevancy,
+    factual consistency (faithfulness), harmfulness, and source context recall.
     """
 
     def __init__(
@@ -39,12 +34,13 @@ class RagasEvaluator:
         judge_embedding_model: BaseEmbedding,
         evaluator_function: Callable = ragas_evaluate,
     ) -> None:
-        """Initialize RAGAS evaluator with models.
+        """Initialize RAGAS evaluator with required models and configuration.
 
         Args:
-            judge_llm: LLM for evaluation judgments
-            embedding_model: Model for embedding comparisons
-            evaluator_function: Optional custom evaluation function
+            judge_llm: LlamaIndex LLM used to evaluate response quality
+            judge_embedding_model: Embedding model for semantic comparisons
+            evaluator_function: Function that runs the evaluation pipeline,
+                defaults to the standard RAGAS evaluate function
         """
         self.judge_llm = LlamaIndexLLMWrapper(judge_llm)
         self.judge_embedding_model = LlamaIndexEmbeddingsWrapper(
@@ -60,14 +56,21 @@ class RagasEvaluator:
         ]
 
     def evaluate(self, response: Response, item: DatasetItemClient) -> Series:
-        """Evaluate response quality using RAGAS metrics.
+        """Evaluate a RAG response against multiple quality metrics.
+
+        Calculates RAGAS evaluation metrics comparing the response to ground truth
+        and source contexts. Creates a temporary dataset structure needed for
+        RAGAS evaluation framework.
 
         Args:
-            response: Query response to evaluate
-            item: Dataset item containing ground truth
+            response: LlamaIndex response object containing the generated answer
+                and source nodes used for retrieval
+            item: Langfuse dataset item containing the original query and
+                expected ground truth answer
 
         Returns:
-            Series: Scores for each metric
+            Series: Pandas Series containing individual scores for each metric
+                (answer relevancy, faithfulness, harmfulness, context recall)
         """
         dataset = Dataset.from_dict(
             {
@@ -90,12 +93,33 @@ class RagasEvaluator:
 
 
 class RagasEvaluatorFactory(Factory):
+    """Factory for creating configured RagasEvaluator instances.
+
+    Creates RagasEvaluator objects based on provided configuration,
+    handling the initialization of required LLM and embedding models.
+
+    Attributes:
+        _configuration_class: Configuration class type used for validation
+    """
+
     _configuration_class: Type = _EvaluationConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: _EvaluationConfiguration
     ) -> RagasEvaluator:
+        """Create and initialize a RagasEvaluator with configured models.
+
+        Initializes judge LLM and embedding models according to configuration
+        specifications, then creates a RagasEvaluator with those models.
+
+        Args:
+            configuration: Evaluation configuration object containing model
+                specifications for the judge LLM and embedding model
+
+        Returns:
+            RagasEvaluator: Fully initialized evaluator ready to assess RAG responses
+        """
         judge_llm = LLMRegistry.get(configuration.judge_llm.provider).create(
             configuration.judge_llm
         )

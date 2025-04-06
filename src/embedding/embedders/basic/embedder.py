@@ -36,12 +36,19 @@ class BasicEmbedder(BaseEmbedder):
             configuration: Configuration for embedding process
             embedding_model: Model to generate embeddings
             vector_store: Storage for embedding vectors
+            logger: Logger instance for tracking operations
         """
         super().__init__(configuration, embedding_model, vector_store)
         self.logger = logger
+        self.batch_size = configuration.embedding.embedding_model.batch_size
+        self.current_nodes_batch = []
 
     def embed(self, nodes: List[TextNode]) -> None:
-        """Generate embeddings for text nodes in batch.
+        """Generate embeddings for text nodes in batches.
+
+        Adds nodes to the current batch and processes complete batches
+        when the batch size threshold is reached. Nodes are embedded
+        and then saved to the vector store.
 
         Args:
             nodes: Collection of text nodes to embed
@@ -60,13 +67,27 @@ class BasicEmbedder(BaseEmbedder):
             ]
 
     def embed_flush(self) -> None:
-        """Process any remaining nodes."""
+        """Process any remaining nodes in the current batch.
+
+        Ensures all nodes that haven't reached the batch size threshold
+        are embedded and saved to the vector store before clearing the batch.
+        Should be called after processing all documents to avoid losing
+        the final incomplete batch.
+        """
         if self.current_nodes_batch:
             self._embed_nodes_batch(self.current_nodes_batch)
             self._save_nodes_batch(self.current_nodes_batch)
             self.current_nodes_batch = []
 
     def _embed_nodes_batch(self, nodes: List[TextNode]) -> None:
+        """Generate embeddings for a batch of text nodes.
+
+        Extracts content from each node, generates embeddings using the embedding model,
+        and assigns the resulting embeddings back to each node.
+
+        Args:
+            nodes: Batch of nodes to generate embeddings for
+        """
         self.logger.info(f"Embedding batch of {len(nodes)} nodes.")
         nodes_contents = [
             node.get_content(metadata_mode=MetadataMode.EMBED) for node in nodes
@@ -80,8 +101,11 @@ class BasicEmbedder(BaseEmbedder):
     def _save_nodes_batch(self, nodes: List[TextNode]) -> None:
         """Save batch of text nodes to vector store.
 
+        Creates a storage context with the configured vector store and
+        stores the nodes with their embeddings using VectorStoreIndex.
+
         Args:
-            nodes: Batch of nodes to save
+            nodes: Batch of nodes to save to the vector store
         """
         self.logger.info(f"Saving batch of {len(nodes)} nodes to vector store.")
         storage_context = StorageContext.from_defaults(
@@ -101,13 +125,16 @@ class BasicEmbedderFactory(Factory):
     def _create_instance(
         cls, configuration: EmbeddingConfiguration
     ) -> BasicEmbedder:
-        """Creates a configured PDF reader.
+        """Creates a configured BasicEmbedder instance.
+
+        Initializes embedding model and vector store components based on
+        the provided configuration settings.
 
         Args:
-            configuration: Settings for PDF processing
+            configuration: Settings for embedding process configuration
 
         Returns:
-            PDFDatasourceReader: Configured reader instance
+            BasicEmbedder: Configured embedder instance ready for document processing
         """
         embedding_model_config = configuration.embedding.embedding_model
         embedding_model = EmbeddingModelRegistry.get(

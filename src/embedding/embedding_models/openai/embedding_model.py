@@ -10,7 +10,11 @@ from embedding.embedding_models.openai.configuration import (
 
 
 class OpenAIEmbeddingModelFactory(SingletonFactory):
-    """Factory for creating configured Qdrant clients."""
+    """Factory for creating configured OpenAI embedding models.
+
+    This factory creates singleton instances of OpenAI embedding models
+    based on the provided configuration.
+    """
 
     _configuration_class: Type = OpenAIEmbeddingModelConfiguration
 
@@ -18,13 +22,13 @@ class OpenAIEmbeddingModelFactory(SingletonFactory):
     def _create_instance(
         cls, configuration: OpenAIEmbeddingModelConfiguration
     ) -> OpenAIEmbedding:
-        """Creates a Qdrant client based on provided configuration.
+        """Creates an OpenAI embedding model based on provided configuration.
 
         Args:
-            configuration: QDrant connection configuration.
+            configuration: OpenAI embedding model configuration.
 
         Returns:
-            QdrantClient: Configured client instance.
+            OpenAIEmbedding: Configured OpenAI embedding model instance.
         """
         return OpenAIEmbedding(
             api_key=configuration.secrets.api_key.get_secret_value(),
@@ -34,10 +38,24 @@ class OpenAIEmbeddingModelFactory(SingletonFactory):
 
 
 class OpenAIEmbeddingModelTokenizerFactory(SingletonFactory):
+    """Factory for creating OpenAI tokenizer functions.
+
+    This factory creates singleton instances of OpenAI tokenizer functions
+    based on the provided configuration.
+    """
+
     _configuration_class: Type = OpenAIEmbeddingModelConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: OpenAIEmbeddingModelConfiguration
     ) -> Callable:
+        """Creates a tokenizer function for OpenAI models based on provided configuration.
+
+        Args:
+            configuration: OpenAI embedding model configuration.
+
+        Returns:
+            Callable: A tokenizer function that converts text to token IDs.
+        """
         return tiktoken.encoding_for_model(configuration.tokenizer_name).encode

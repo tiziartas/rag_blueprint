@@ -18,11 +18,7 @@ class ConfluenceDatasourceReader(BaseReader):
     """Reader for extracting documents from Confluence spaces.
 
     Implements document extraction from Confluence spaces, handling pagination
-    and export limits. Supports both synchronous and asynchronous retrieval.
-
-    Attributes:
-        export_limit: Maximum number of documents to extract
-        client: Client for Confluence API interactions
+    and export limits.
     """
 
     def __init__(
@@ -34,8 +30,9 @@ class ConfluenceDatasourceReader(BaseReader):
         """Initialize the Confluence reader.
 
         Args:
-            configuration: Settings for Confluence access and limits
+            configuration: Settings for Confluence access and export limits
             client: Client for Confluence API interactions
+            logger: Logger instance for recording operation information
         """
         super().__init__()
         self.export_limit = configuration.export_limit
@@ -47,10 +44,12 @@ class ConfluenceDatasourceReader(BaseReader):
     ) -> AsyncIterator[dict]:
         """Asynchronously fetch all documents from Confluence.
 
-        Retrieves documents from all global spaces, respecting export limit.
+        Retrieves pages from all global spaces in Confluence, respecting the export limit.
+        Yields each page as a dictionary containing its content and metadata.
 
         Returns:
-            List[ConfluenceDocument]: List of extracted and processed documents
+            AsyncIterator[dict]: An async iterator of page dictionaries containing
+            page content and metadata such as body, title, and last update information
         """
         self.logger.info(
             f"Fetching pages from Confluence with limit {self.export_limit}"
@@ -82,14 +81,17 @@ class ConfluenceDatasourceReader(BaseReader):
                 yield page
 
     def _get_all_pages(self, space: str, limit: int) -> List[dict]:
-        """Fetch all pages from a Confluence space.
+        """Fetch all pages from a specific Confluence space.
+
+        Handles pagination internally to retrieve all pages from the specified space,
+        up to the optional limit. Pages include body content and update history.
 
         Args:
             space: Space key to fetch pages from
             limit: Maximum number of pages to fetch (None for unlimited)
 
         Returns:
-            List[dict]: List of page details from the space
+            List[dict]: List of page dictionaries with content and metadata
         """
         start = 0
         params = {
@@ -119,14 +121,17 @@ class ConfluenceDatasourceReader(BaseReader):
 
     @staticmethod
     def _limit_reached(pages: List[dict], limit: int) -> bool:
-        """Check if page limit has been reached.
+        """Check if the page retrieval limit has been reached.
+
+        Determines whether the number of fetched pages has reached or exceeded
+        the specified limit.
 
         Args:
-            pages: List of retrieved pages
-            limit: Maximum number of pages (None for unlimited)
+            pages: List of already retrieved pages
+            limit: Maximum number of pages to retrieve (None for unlimited)
 
         Returns:
-            bool: True if limit reached, False otherwise
+            bool: True if limit reached or exceeded, False otherwise
         """
         return limit is not None and len(pages) >= limit
 
@@ -134,7 +139,8 @@ class ConfluenceDatasourceReader(BaseReader):
 class ConfluenceDatasourceReaderFactory(Factory):
     """Factory for creating Confluence reader instances.
 
-    Provides factory method to create configured ConfluenceDatasourceReader objects.
+    Creates and configures ConfluenceDatasourceReader objects with appropriate
+    clients based on the provided configuration.
     """
 
     _configuration_class = ConfluenceDatasourceConfiguration
@@ -143,13 +149,16 @@ class ConfluenceDatasourceReaderFactory(Factory):
     def _create_instance(
         cls, configuration: ConfluenceDatasourceConfiguration
     ) -> ConfluenceDatasourceReader:
-        """Creates a configured Confluence reader.
+        """Creates a configured Confluence reader instance.
+
+        Initializes the Confluence client and reader with the given configuration
+        settings for credentials, URL, and export limits.
 
         Args:
-            configuration: Confluence access settings
+            configuration: Confluence connection and access settings
 
         Returns:
-            ConfluenceDatasourceReader: Configured reader instance
+            ConfluenceDatasourceReader: Fully configured reader instance
         """
         client = ConfluenceClientFactory.create(configuration)
         return ConfluenceDatasourceReader(

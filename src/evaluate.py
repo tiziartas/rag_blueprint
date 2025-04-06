@@ -1,6 +1,7 @@
 """
-This script is used to evaluate RAG system using langfuse datasets. To add a new item to datasets, visit Langfuse UI.
-Qdrant vector storage should be running with ready collection of embeddings.
+This script is used to evaluate RAG system using langfuse datasets.
+To add a new item to manual dataset, visit Langfuse UI.
+Vector storage should be running with ready collection of embeddings.
 To run the script execute the following command from the root directory of the project:
 
 > python src/evaluate.py
@@ -13,15 +14,14 @@ from evaluation.bootstrap.initializer import EvaluationInitializer
 from evaluation.evaluators.langfuse import LangfuseEvaluatorFactory
 
 
-def run(logger: logging.Logger = LoggerConfiguration.get_logger(__name__)):
-    """Execute RAG system evaluation workflow.
+def run(
+    logger: logging.Logger = LoggerConfiguration.get_logger(__name__),
+) -> None:
+    """
+    Execute RAG system evaluation workflow.
 
     Args:
-        injector: Dependency injection container
-
-    Note:
-        Evaluates both feedback and manual datasets
-        Results are recorded in Langfuse
+        logger: Logger instance for logging messages
     """
     initializer = EvaluationInitializer()
     configuration = initializer.get_configuration()

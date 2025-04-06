@@ -10,7 +10,22 @@ from core.base_configuration import BaseSecrets
 
 
 class OpenAILikeLLMConfiguration(LLMConfiguration):
+    """
+    Configuration for OpenAI-compatible language model providers.
+
+    This class defines the configuration settings needed to interact with APIs
+    that follow OpenAI's API patterns, including authentication and context
+    window settings.
+    """
+
     class Secrets(BaseSecrets):
+        """
+        Secret configuration values required for authentication with OpenAI-like APIs.
+
+        This class stores sensitive information needed to connect to the API
+        and supports loading values from environment variables.
+        """
+
         model_config = ConfigDict(
             env_file_encoding="utf-8",
             env_prefix="RAG__LLMS__OPENAI_LIKE__",

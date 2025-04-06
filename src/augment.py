@@ -1,5 +1,6 @@
 """
-This script is used to handle chat interactions using the ChainLit library and a query engine from the RAG (Retrieval-Augmented Generation) model.
+This script is used to handle chat interactions using the ChainLit library and a query engine.
+Actions are observed by Langfuse.
 To make it work vector storage should be filled with the embeddings of the documents.
 To run the script execute the following command from the root directory of the project:
 
@@ -20,23 +21,28 @@ from augmentation.components.query_engines.registry import QueryEngineRegistry
 
 @cl.cache
 def get_cached_initializer() -> AugmentationInitializer:
+    """
+    Initialize the augmentation process and cache it the initializer.
+    """
     return AugmentationInitializer()
 
 
 @cl.data_layer
 def get_data_layer() -> ChainlitService:
-    """Initialize application-level components.
+    """
+    Initialize Chainlit's data layer with the custom service.
 
-    This runs once when the Chainlit app starts.
+    Returns:
+        ChainlitService: The custom service for data layer.
     """
     configuration = get_cached_initializer().get_configuration()
     return ChainlitServiceFactory.create(configuration.augmentation)
 
 
 @cl.on_chat_start
-async def start():
-    """Initialize chat session with query engine.
-
+async def start() -> None:
+    """
+    Initialize chat session with query engine.
     Sets up session-specific query engine and displays welcome message.
     """
     configuration = get_cached_initializer().get_configuration()
@@ -49,15 +55,12 @@ async def start():
 
 
 @cl.on_message
-async def main(user_message: cl.Message):
-    """Process user messages and generate responses.
+async def main(user_message: cl.Message) -> None:
+    """
+    Process user messages and generate responses.
 
     Args:
         user_message: Message received from user
-
-    Note:
-        Streams tokens for real-time response generation
-        Adds source references to responses
     """
     query_engine = cl.user_session.get("query_engine")
     assistant_message = cl.Message(content="", author="Assistant")

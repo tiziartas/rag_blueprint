@@ -5,7 +5,7 @@ from augmentation.bootstrap.configuration.components.llm_configuration import (
 from augmentation.components.llms.openai.configuration import (
     OpenAILLMConfiguration,
 )
-from augmentation.components.llms.openai.openai import OpenaAILLMFactory
+from augmentation.components.llms.openai.llm import OpenaAILLMFactory
 from augmentation.components.llms.registry import LLMRegistry
 
 

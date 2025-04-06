@@ -37,16 +37,23 @@ class QdrantVectorStoreValidator(BaseVectorStoreValidator):
         self.client = client
 
     def validate(self) -> None:
-        """
-        Valiuate the Qdrant vector store settings.
+        """Validate the Qdrant vector store settings.
+
+        Performs validation checks on the provided configuration
+        to ensure compatibility with Qdrant backend requirements.
         """
         self.validate_collection()
 
     def validate_collection(self) -> None:
         """Validate Qdrant collection existence.
 
+        Checks if the specified collection already exists in the Qdrant
+        database and raises an exception if it does, preventing
+        unintentional overwriting of existing collections.
+
         Raises:
             CollectionExistsException: If collection already exists
+                in the Qdrant database with the specified name
         """
         collection_name = self.configuration.collection_name
         if self.client.collection_exists(collection_name):
@@ -54,21 +61,28 @@ class QdrantVectorStoreValidator(BaseVectorStoreValidator):
 
 
 class QdrantVectorStoreValidatorFactory(SingletonFactory):
-    """Factory for creating configured Qdrant clients."""
+    """Factory for creating Qdrant vector store validators.
+
+    Implements the singleton pattern to ensure only one validator
+    instance exists for each unique configuration.
+    """
 
     _configuration_class: Type = QDrantVectorStoreConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: QDrantVectorStoreConfiguration
-    ) -> QdrantClient:
-        """Creates a Qdrant client based on provided configuration.
+    ) -> QdrantVectorStoreValidator:
+        """Creates a Qdrant validator based on provided configuration.
+
+        Instantiates a new validator with the appropriate client
+        for the given configuration.
 
         Args:
             configuration: QDrant connection configuration.
 
         Returns:
-            QdrantClient: Configured client instance.
+            QdrantVectorStoreValidator: Configured validator instance.
         """
         client = QdrantClientFactory.create(configuration)
         return QdrantVectorStoreValidator(

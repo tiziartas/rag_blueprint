@@ -55,8 +55,8 @@ def generate_markdown_template(base_dir, docs_dir, parent_module):
     module_name = os.path.basename(base_dir)
     module_doc_path = os.path.join(docs_dir, f"{module_name}.md")
 
-    # Check if this is under embedding/datasources
-    is_datasource = "embedding/datasources" in base_dir
+    # Check if this is under extraction/datasources
+    is_datasource = "extraction/datasources" in base_dir
 
     sections = []
     builders_section = None
@@ -167,12 +167,9 @@ def update_mkdocs_yml(nav_structure):
     3. How to:
         - How To Add New LLM (how_to/how_to_add_new_llm.md)
     4. Code Docs:
-        - Chat (src/chat.md)
+        - Augment (src/augment.md)
         - Embed (src/embed.md)
         - Evaluate (src/evaluate.md)
-        - Augmentation (folder)
-        - Embedding -> Datasources (aggregated Markdown files for datasources)
-        - Evaluation (folder)
 
     :param nav_structure: Nested navigation structure for the documentation.
     """
@@ -210,30 +207,36 @@ def update_mkdocs_yml(nav_structure):
         },
         {
             "Code Docs": [
-                {"Chat": "src/chat.md"},
+                {"Augment": "src/augment.md"},
                 {"Embed": "src/embed.md"},
                 {"Evaluate": "src/evaluate.md"},
             ]
         },
     ]
 
-    section_order = ["augmentation", "common", "embedding", "evaluation"]
+    section_order = [
+        "augmentation",
+        "core",
+        "embedding",
+        "evaluation",
+        "extraction",
+    ]
 
     # Process each section in order
     for section in section_order:
         for entry in nav_structure:
             if section.capitalize() in entry:
-                # Special case for embedding/datasources
-                if section == "embedding" and "Datasources" in entry.get(
-                    "Embedding", {}
+                # Special case for extraction/datasources
+                if section == "extraction" and "Datasources" in entry.get(
+                    "Extraction", {}
                 ):
-                    embedding_entry = entry["Embedding"]
+                    embedding_entry = entry["Extraction"]
                     datasources_entry = {
                         "Datasources": embedding_entry.pop("Datasources")
                     }
                     ordered_nav[-1]["Code Docs"].append(
                         {
-                            "Embedding": [datasources_entry]
+                            "Extraction": [datasources_entry]
                             + list(embedding_entry.items())
                         }
                     )

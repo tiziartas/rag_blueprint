@@ -16,6 +16,16 @@ from embedding.vector_stores.registry import (
 
 
 def register() -> None:
+    """
+    Registers Chroma vector store components with the appropriate registries.
+
+    This function performs the following registrations:
+    1. ChromaVectorStoreConfiguration with VectorStoreConfigurationRegistry
+    2. ChromaVectorStoreFactory with VectorStoreRegistry
+    3. ChromaVectorStoreValidatorFactory with VectorStoreValidatorRegistry
+
+    All registrations use VectorStoreName.CHROMA as the identifier.
+    """
     VectorStoreConfigurationRegistry.register(
         VectorStoreName.CHROMA,
         ChromaVectorStoreConfiguration,

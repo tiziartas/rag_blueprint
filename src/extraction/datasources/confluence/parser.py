@@ -14,10 +14,23 @@ from extraction.datasources.core.parser import BaseParser
 class ConfluenceDatasourceParser(BaseParser[ConfluenceDocument]):
 
     def __init__(self, configuration: ConfluenceDatasourceConfiguration):
+        """Initialize the Confluence parser with the provided configuration.
+
+        Args:
+            configuration: Configuration object containing Confluence connection details
+        """
         self.configuration = configuration
         self.parser = MarkItDown()
 
     def parse(self, page: str) -> ConfluenceDocument:
+        """Parse a Confluence page into a document.
+
+        Args:
+            page: Dictionary containing Confluence page information
+
+        Returns:
+            ConfluenceDocument: Parsed document with extracted text and metadata
+        """
         markdown = self._get_page_markdown(page)
         metadata = self._extract_metadata(page, self.configuration.base_url)
         return ConfluenceDocument(text=markdown, metadata=metadata)
@@ -25,8 +38,10 @@ class ConfluenceDatasourceParser(BaseParser[ConfluenceDocument]):
     def _get_page_markdown(self, page: dict) -> str:
         """Extract markdown content from a Confluence page. Because of MarkItDown,
         we need to write the HTML content to a temporary file and then convert it to markdown.
+
         Args:
             page: Dictionary containing Confluence page details
+
         Returns:
             str: Markdown content of the page
         """
@@ -76,9 +91,12 @@ class ConfluenceDatasourceParserFactory(Factory):
     def _create_instance(
         cls, configuration: ConfluenceDatasourceConfiguration
     ) -> ConfluenceDatasourceParser:
-        """
-        Creates the basic PDF parser.
+        """Creates a Confluence parser instance.
+
+        Args:
+            configuration: Configuration object containing Confluence connection details
+
         Returns:
-            BasicPDFDatasourceParser: Basic PDF parser instance
+            ConfluenceDatasourceParser: Configured Confluence parser instance
         """
         return ConfluenceDatasourceParser(configuration)

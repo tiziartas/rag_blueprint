@@ -10,13 +10,19 @@ from core.base_configuration import BaseConfiguration
 from core.base_factory import ConfigurationRegistry
 
 
-# Enums
 class SynthesizerName(str, Enum):
+    """Enumeration of available synthesizer types."""
+
     TREE = "tree"
 
 
-# Configuraiton
 class SynthesizerConfiguration(BaseConfiguration):
+    """Configuration class for response synthesizers.
+
+    This class defines the parameters required to configure a synthesizer component
+    that generates structured responses based on the provided configuration.
+    """
+
     name: SynthesizerName = Field(
         ..., description="The name of the synthesizer."
     )
@@ -33,6 +39,18 @@ class SynthesizerConfiguration(BaseConfiguration):
     @field_validator("llm")
     @classmethod
     def _validate_llm(cls, value: Any, info: ValidationInfo) -> Any:
+        """Validate the LLM configuration.
+
+        Ensures the provided language model configuration is valid according to the
+        registered LLM configuration types.
+
+        Args:
+            value: The LLM configuration to validate.
+            info: Validation context information.
+
+        Returns:
+            The validated LLM configuration object.
+        """
         return super()._validate(
             value,
             info=info,
@@ -41,4 +59,13 @@ class SynthesizerConfiguration(BaseConfiguration):
 
 
 class SynthesizerConfigurationRegistry(ConfigurationRegistry):
+    """Registry for synthesizer configurations.
+
+    Maintains a mapping between synthesizer names and their respective configuration classes,
+    allowing for dynamic instantiation of synthesizer configurations based on their type.
+
+    Attributes:
+        _key_class: The enumeration class for synthesizer names.
+    """
+
     _key_class: Type = SynthesizerName

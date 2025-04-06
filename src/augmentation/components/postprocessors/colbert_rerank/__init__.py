@@ -14,6 +14,13 @@ from augmentation.components.postprocessors.registry import (
 
 
 def register() -> None:
+    """
+    Registers the ColBERT reranker component with the postprocessor registry.
+
+    This function registers both the ColbertRerankFactory and ColbertRerankConfiguration
+    with their respective registries, making the ColBERT reranking capability
+    available to the augmentation pipeline.
+    """
     PostprocessorRegistry.register(
         PostProcessorName.COLBERT_RERANK, ColbertRerankFactory
     )

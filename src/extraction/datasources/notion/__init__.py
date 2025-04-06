@@ -14,6 +14,15 @@ from extraction.datasources.registry import DatasourceManagerRegistry
 
 
 def register() -> None:
+    """
+    Registers Notion as a datasource in the application.
+
+    This function connects the Notion datasource to the application by:
+    1. Registering the NotionDatasourceConfiguration with the configuration registry
+    2. Registering the NotionDatasourceManagerFactory with the manager registry
+
+    Both registrations use the NOTION datasource name as their identifier.
+    """
     DatasourceConfigurationRegistry.register(
         DatasourceName.NOTION, NotionDatasourceConfiguration
     )

@@ -4,12 +4,12 @@ This guide outlines the steps required to set up the RAG system on your local ma
 
 Requirements:
 
-- Python 3.12
+- Python >=3.10,<3.13
 - Docker
 
 ## Configuration & Secrets
 
-The local configuration is located in [configuration.local.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.local.json). This file configures toy PDF dataset as the document datasource and defines local settings for embedding, augmentation, and evaluation stages. To customize the setup, refer to the configuration [QuickStart Setup](../how_to/how_to_configure.md).
+The local configuration is located in [configuration.local.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.local.json). This file configures toy PDF dataset as the document datasource and defines local settings for embedding, augmentation, and evaluation stages. To customize the setup, refer to the [How to Configure the RAG System](../how_to/how_to_configure.md) guide.
 
 ### Secrets Configuration
 Create a secrets file at `configurations/secrets.local.env`. Below is a template:
@@ -58,7 +58,7 @@ build/workstation/init.sh --env local
 
 **_NOTE:_**  Depending on your OS and the setup you might need to give execute permission to the initialization script e.g. `chmod u+x build/workstation/init.sh`
 
-Once initialized, access the Langfuse web server on your localhost (port defined in [configuration.local.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.local.json) under `pipeline.augmentation.langfuse.port`). Use the Langfuse UI to:
+Once initialized, access the Langfuse web server on your localhost (port defined in [configuration.local.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.local.json) under `augmentation.langfuse.port`). Use the Langfuse UI to:
 
 1. Create a user.
 2. Set up a project for the application.
@@ -85,14 +85,14 @@ Run the embedding stage script:
 python src/embed.py --env local
 ```
 
-**_Note_:** The embedding process may take significant time, depending on the size of your datasource.
+**_Note_:** The embedding process may take significant time, depending on the size of your datasource. Use `export_limit` fields in configuration to speed up the process.
 
 #### Augmentation Stage
 
 Run the augmentation stage script:
 
 ```sh
-python src/chat.py --env local
+python src/augment.py --env local
 ```
 
 This initializes the RAG system's query engine and the Chainlit application, leveraging the embeddings generated in the previous step.
@@ -114,4 +114,3 @@ The `.pre-commit-config.yaml` file configures code formatters to enforce consist
 ```sh
 pre-commit install
 ```
-````

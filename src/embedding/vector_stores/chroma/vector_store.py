@@ -1,7 +1,6 @@
 from typing import Type
 
 from llama_index.vector_stores.chroma import ChromaVectorStore
-from qdrant_client import QdrantClient
 
 from core.base_factory import SingletonFactory
 from embedding.vector_stores.chroma.configuration import (
@@ -10,21 +9,27 @@ from embedding.vector_stores.chroma.configuration import (
 
 
 class ChromaVectorStoreFactory(SingletonFactory):
-    """Factory for creating configured Qdrant clients."""
+    """Factory for creating configured Chroma vector stores.
+
+    This singleton factory creates and manages ChromaVectorStore instances
+    based on the provided configuration. It ensures that only one instance
+    is created for each unique configuration.
+    """
 
     _configuration_class: Type = ChromaVectorStoreConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: ChromaVectorStoreConfiguration
-    ) -> QdrantClient:
-        """Creates a Qdrant client based on provided configuration.
+    ) -> ChromaVectorStore:
+        """Creates a Chroma vector store based on provided configuration.
 
         Args:
-            configuration: QDrant connection configuration.
+            configuration: Chroma vector store connection configuration
+                containing host, port, and collection name.
 
         Returns:
-            QdrantClient: Configured client instance.
+            ChromaVectorStore: Configured Chroma vector store instance.
         """
         return ChromaVectorStore(
             host=configuration.host,

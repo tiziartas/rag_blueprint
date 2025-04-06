@@ -20,10 +20,14 @@ class ChainlitUtils:
 
     @staticmethod
     def get_welcome_message() -> Message:
-        """Create and return a welcome message.
+        """Create and return a welcome message for the chat interface.
+
+        Creates a Message object with predefined content from the WELCOME_TEMPLATE
+        to greet users when they start a conversation.
 
         Returns:
-            Message: Configured welcome message object.
+            Message: A chainlit Message object with the Assistant as author
+                    and the welcome template as content.
         """
         return Message(
             author="Assistant", content=ChainlitUtils.WELCOME_TEMPLATE
@@ -31,11 +35,15 @@ class ChainlitUtils:
 
     @staticmethod
     def add_references(message: Message, response: StreamingResponse) -> None:
-        """Add source references to a message.
+        """Append source references to a message from a streaming response.
+
+        Takes a message object and a streaming response containing source nodes,
+        then appends formatted references to the message content.
 
         Args:
-            message: Message object to append references to.
-            response: StreamingResponse containing source nodes.
+            message (Message): The chainlit Message object to modify by adding references.
+            response (StreamingResponse): A response object containing source_nodes
+                                          with reference information.
         """
         message.content += ChainlitUtils._get_references_str(
             response.source_nodes
@@ -43,13 +51,18 @@ class ChainlitUtils:
 
     @staticmethod
     def _get_references_str(nodes: List[NodeWithScore]) -> str:
-        """Generate formatted references string from source nodes.
+        """Generate a formatted references section from source nodes.
+
+        Processes a list of source nodes to create a deduplicated,
+        formatted string of references.
 
         Args:
-            nodes: List of source nodes with relevance scores.
+            nodes (List[NodeWithScore]): List of source nodes with relevance scores
+                                         and metadata containing reference information.
 
         Returns:
-            str: Formatted string of unique references.
+            str: A formatted string containing unique references in the
+                 structure defined by REFERENCES_TEMPLATE.
         """
         raw_references = [
             ChainlitUtils._get_reference_str(node) for node in nodes
@@ -59,13 +72,18 @@ class ChainlitUtils:
 
     @staticmethod
     def _get_reference_str(node: NodeWithScore) -> str:
-        """Format a single node's reference as a string.
+        """Format a single node's reference as a markdown string.
+
+        Extracts title and URL from a node's metadata and formats it
+        as a markdown list item, with link formatting if a URL is available.
 
         Args:
-            node: Source node with metadata containing title and optional URL.
+            node (NodeWithScore): A source node containing metadata with
+                                 title and optional URL information.
 
         Returns:
-            str: Formatted reference string, with URL link if available.
+            str: A formatted markdown list item representing the reference,
+                 with a clickable link if URL is available.
         """
         title = node.metadata.get("title")
         if not title:

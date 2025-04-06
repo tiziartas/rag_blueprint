@@ -1,3 +1,22 @@
+"""Runner for initializing and deploying RAG Blueprint services.
+
+This module provides functionality for setting up and running the RAG Blueprint
+services in a local/workstation environment using Docker. It handles both the initialization
+of infrastructure services (vector stores, databases) and the deployment of
+application services (embedding, chat, evaluation).
+
+The runner supports two primary modes:
+- Initialization mode (--init): Sets up vector stores and other infrastructure
+- Deployment mode (--deploy): Runs the application services
+
+It manages configuration, logging, Docker service orchestration, and cleanup
+processes. The runner is designed to work in an on-premises environment and
+handles port availability checking and environment variable setup.
+
+Example usage:
+    python runner.py --env default --init
+"""
+
 import logging
 import sys
 
@@ -28,6 +47,17 @@ from evaluation.bootstrap.configuration.configuration import (
 
 
 class BuildMetadataConfiguration(MetadataConfiguration):
+    """Configuration for build metadata and command-line arguments.
+
+    Extends the base MetadataConfiguration with build-specific settings
+    like initialization and deployment flags.
+
+    Attributes:
+        init: Flag to indicate if initialization should be performed
+        deploy: Flag to indicate if deployment should be performed
+        log_file: Path to the log file
+    """
+
     init: bool = Field(
         False, description="If set, then the initialization will be run."
     )
@@ -41,6 +71,11 @@ class BuildMetadataConfiguration(MetadataConfiguration):
 
     @classmethod
     def _get_parser(cls):
+        """Creates an argument parser with build-specific arguments.
+
+        Returns:
+            argparse.ArgumentParser: Configured argument parser
+        """
         parser = super()._get_parser()
         mode_group = parser.add_mutually_exclusive_group(required=True)
         mode_group.add_argument(
@@ -58,6 +93,15 @@ class BuildMetadataConfiguration(MetadataConfiguration):
 
     @classmethod
     def _get_data(cls, data: dict, args: argparse.Namespace) -> dict:
+        """Process parsed command-line arguments into configuration data.
+
+        Args:
+            data: Initial configuration data
+            args: Parsed command-line arguments
+
+        Returns:
+            dict: Updated configuration data
+        """
         data = super()._get_data(data, args)
         if args.init:
             data["init"] = True
@@ -106,9 +150,24 @@ class FileAndConsoleLogger(logging.Logger):
 
 
 class BuildInitializer:
+    """Initializes the build environment and configuration.
+
+    Handles loading configuration, packages, and exporting environment variables
+    needed for the build and deployment process.
+
+    Attributes:
+        metadata: Build metadata configuration
+        build_name: Name of the current build
+        environment: Build environment
+        logger: Configured logger instance
+        init: Flag indicating if initialization should run
+        deploy: Flag indicating if deployment should run
+        configuration_retriever: Configuration retrieval mechanism
+        configuration: Retrieved configuration
+    """
 
     def __init__(self):
-
+        """Initialize the build environment by loading configuration and packages."""
         self.metadata = BuildMetadataConfiguration()
         self.build_name = self.metadata.build_name
         self.environment = self.metadata.environment
@@ -126,17 +185,37 @@ class BuildInitializer:
         self._export_configuration()
 
     def get_configuration(self) -> EvaluationConfiguration:
+        """Get the current configuration.
+
+        Returns:
+            EvaluationConfiguration: The current configuration
+        """
         if not self.configuration:
             self.configuration = self.configuration_retriever.get()
         return self.configuration
 
     def should_run_initialization(self) -> bool:
+        """Check if initialization should be run.
+
+        Returns:
+            bool: True if initialization should be run
+        """
         return self.init
 
     def should_run_deployment(self) -> bool:
+        """Check if deployment should be run.
+
+        Returns:
+            bool: True if deployment should be run
+        """
         return self.deploy
 
     def _get_configuration_retriever(self) -> BaseConfigurationRetriever:
+        """Get a configuration retriever for on-prem environment.
+
+        Returns:
+            BaseConfigurationRetriever: Configured retriever instance
+        """
         configuration_retriever_class = ConfiguratioRetriverRegistry.get(
             on_prem=True
         )
@@ -146,10 +225,10 @@ class BuildInitializer:
         )
 
     def _export_configuration(self):
-        """Export the port configuration.
+        """Export configuration to environment variables.
 
-        Export the port configuration to the environment variables.
-        It is required for docker-compose, so it is able to use ports from the configuration.
+        Exports port configuration and other settings to environment variables
+        required for docker-compose to use the correct ports and settings.
         """
         vector_store_configuration = self.configuration.embedding.vector_store
         os.environ["RAG__VECTOR_STORE__PORT_REST"] = str(
@@ -459,8 +538,7 @@ class Initialization:
 def initialize(
     logger: FileAndConsoleLogger, command_runner: CommandRunner
 ) -> None:
-    """
-    Initialize the services.
+    """Initialize the services.
 
     Args:
         logger: Logger for the initialization
@@ -472,8 +550,7 @@ def initialize(
 
 
 def deploy(logger: FileAndConsoleLogger, command_runner: CommandRunner) -> None:
-    """
-    Deploy the services.
+    """Deploy the services.
 
     Args:
         logger: Logger for the deployment

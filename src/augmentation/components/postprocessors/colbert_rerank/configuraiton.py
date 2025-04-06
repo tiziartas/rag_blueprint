@@ -10,10 +10,22 @@ from augmentation.bootstrap.configuration.components.postprocessors_configuratio
 
 
 class ColbertRerankConfiguration(PostProcessorConfiguration):
+    """
+    Configuration for the ColBERT reranking postprocessor.
+
+    This class defines the settings needed to perform document reranking
+    using the ColBERT retrieval model, which improves search quality through
+    late interaction between queries and documents.
+    """
+
     class Models(str, Enum):
+        """Supported ColBERT models for reranking."""
+
         COLBERTV2 = "colbert-ir/colbertv2.0"
 
     class Tokenizers(str, Enum):
+        """Supported tokenizers for ColBERT reranking."""
+
         COLBERTV2 = "colbert-ir/colbertv2.0"
 
     name: Literal[PostProcessorName.COLBERT_RERANK] = Field(

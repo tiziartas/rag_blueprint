@@ -29,16 +29,16 @@ from core.logger import LoggerConfiguration
 class ChainlitFeedbackService:
     """Service for handling Chainlit feedback and Langfuse integration.
 
-    This service associates feedbacks with value, comment and message, and persists
-    information about retrieved nodes used for message generation in Langfuse database
-    as trace scores. This allows feedback display in the Langfuse UI.
+    This service processes user feedback from the Chainlit UI and integrates it with
+    Langfuse for tracking and analysis. It associates feedback with traces in Langfuse,
+    saves positive feedback examples to datasets, and provides mechanisms for retrieving
+    relevant trace information.
+
+    The service tracks feedback scores, comments, and message content, allowing for
+    detailed analytics in the Langfuse UI and quality improvement of responses over time.
 
     Attributes:
-        SCORE_NAME: Name used for feedback scores in Langfuse.
-        langfuse_dataset_service: Service for managing Langfuse datasets.
-        langfuse_client: Client for Langfuse API interactions.
-        feedback_dataset: Configuration for feedback dataset.
-        chainlit_tag_format: Format string for trace retrieval tags.
+        SCORE_NAME: The standardized name used for feedback scores in Langfuse.
     """
 
     SCORE_NAME = "User Feedback"
@@ -51,13 +51,14 @@ class ChainlitFeedbackService:
         chainlit_tag_format: str,
         logger: logging.Logger = LoggerConfiguration.get_logger(__name__),
     ):
-        """Initialize the feedback service.
+        """Initialize the ChainlitFeedbackService. Creates the feedback dataset if it doesn't exist.
 
         Args:
-            langfuse_dataset_service: Service for managing Langfuse datasets.
-            langfuse_client: Client for Langfuse API interactions.
-            feedback_dataset: Configuration for feedback dataset.
-            chainlit_tag_format: Format string for trace retrieval tags.
+            langfuse_dataset_service: Service for creating and managing Langfuse datasets.
+            langfuse_client: Client for interacting with the Langfuse API.
+            feedback_dataset: Configuration for the dataset where positive feedback is stored.
+            chainlit_tag_format: Format string for generating tags to retrieve traces by message ID.
+            logger: Logger instance for recording service activities.
         """
         self.langfuse_dataset_service = langfuse_dataset_service
         self.langfuse_client = langfuse_client
@@ -68,16 +69,19 @@ class ChainlitFeedbackService:
         self.langfuse_dataset_service.create_if_does_not_exist(feedback_dataset)
 
     async def upsert(self, feedback: Feedback) -> bool:
-        """Upsert Chainlit feedback to Langfuse database.
+        """Process and store Chainlit feedback in Langfuse.
 
-        Updates or inserts feedback as a score of associated trace and saves positive
-        feedback in the associated dataset.
+        Takes a feedback object from Chainlit, associates it with the appropriate trace in Langfuse,
+        and performs two main actions:
+        1. Records the feedback as a score on the trace
+        2. For positive feedback, saves the trace data to the feedback dataset for future model training
 
         Args:
-            feedback: Feedback object containing value and comment.
+            feedback: Chainlit Feedback object containing user feedback value, optional comment,
+                     and reference to the message being rated.
 
         Returns:
-            bool: True if feedback was successfully upserted, False otherwise.
+            bool: True if feedback was successfully processed and stored, False if an error occurred.
         """
         trace = None
         try:
@@ -107,16 +111,19 @@ class ChainlitFeedbackService:
             return False
 
     def _fetch_trace(self, message_id: str) -> TraceWithDetails:
-        """Fetch trace by message ID.
+        """Retrieve Langfuse trace associated with a Chainlit message ID.
+
+        Uses the configured tag format to locate the trace related to a specific
+        Chainlit message.
 
         Args:
-            message_id: Message identifier to fetch trace for.
+            message_id: The unique identifier of the Chainlit message.
 
         Returns:
-            TraceWithDetails: Found trace object.
+            TraceWithDetails: The complete trace data for the message.
 
         Raises:
-            TraceNotFoundException: If no trace is found for message ID.
+            TraceNotFoundException: If no trace exists with the tag for this message ID.
         """
         response = self.langfuse_client.fetch_traces(
             tags=[self.chainlit_tag_format.format(message_id=message_id)]
@@ -127,10 +134,14 @@ class ChainlitFeedbackService:
         return trace
 
     def _upload_trace_to_dataset(self, trace: TraceWithDetails) -> None:
-        """Upload trace details to feedback dataset.
+        """Save a trace to the feedback dataset for model improvement.
+
+        Extracts relevant data from the trace including input query, retrieved nodes,
+        templating information, and the final response, then creates a dataset item
+        that can be used for model evaluation or fine-tuning.
 
         Args:
-            trace: Trace object containing interaction details.
+            trace: The trace containing the complete interaction details.
         """
         retrieve_observation = self._fetch_last_retrieve_observation(trace)
         last_templating_observation = self._fetch_last_templating_observation(
@@ -155,13 +166,16 @@ class ChainlitFeedbackService:
     def _fetch_last_retrieve_observation(
         self, trace: TraceWithDetails
     ) -> ObservationsView:
-        """Fetch most recent retrieve observation for trace.
+        """Get the most recent retrieval observation from a trace.
+
+        Retrieves information about the knowledge retrieval step in the RAG pipeline,
+        including which nodes/documents were retrieved.
 
         Args:
-            trace: Trace object containing observations.
+            trace: The trace containing all observations.
 
         Returns:
-            ObservationsView: Latest retrieve observation sorted by creation time.
+            ObservationsView: The most recent retrieval observation, containing retrieved nodes.
         """
         retrieve_observations = self.langfuse_client.fetch_observations(
             trace_id=trace.id,
@@ -172,13 +186,16 @@ class ChainlitFeedbackService:
     def _fetch_last_templating_observation(
         self, trace: TraceWithDetails
     ) -> ObservationsView:
-        """Fetch most recent templating observation for trace.
+        """Get the most recent templating observation from a trace.
+
+        Retrieves information about how the prompt was constructed before being
+        sent to the language model.
 
         Args:
-            trace: Trace object containing observations.
+            trace: The trace containing all observations.
 
         Returns:
-            ObservationsView: Latest templating observation sorted by creation time.
+            ObservationsView: The most recent templating observation, containing prompt construction details.
         """
         templating_observations = self.langfuse_client.fetch_observations(
             trace_id=trace.id,
@@ -188,24 +205,45 @@ class ChainlitFeedbackService:
 
     @staticmethod
     def _is_positive(feedback: Feedback) -> bool:
-        """Check if feedback value is positive.
+        """Determine if the feedback is positive.
+
+        Classifies feedback as positive if its numeric value is greater than zero.
+        Positive feedback is used to identify high-quality examples for the dataset.
 
         Args:
-            feedback: Feedback object containing user feedback.
+            feedback: The feedback object containing the user's rating.
 
         Returns:
-            bool: True if feedback value is greater than 0.
+            bool: True if the feedback value is positive (greater than 0), False otherwise.
         """
         return feedback.value > 0
 
 
 class ChainlitFeedbackServiceFactory(Factory):
+    """Factory for creating ChainlitFeedbackService instances.
+
+    This factory creates properly configured ChainlitFeedbackService instances using
+    the application configuration. It handles initializing dependencies like the
+    Langfuse client and dataset service.
+    """
+
     _configuration_class: Type = _AugmentationConfiguration
 
     @classmethod
     def _create_instance(
         cls, configuration: _AugmentationConfiguration
-    ) -> LangfuseDatasetService:
+    ) -> ChainlitFeedbackService:
+        """Create a new ChainlitFeedbackService instance.
+
+        Creates and configures a feedback service with the proper Langfuse client,
+        dataset service, and configuration settings.
+
+        Args:
+            configuration: Application configuration containing Langfuse settings.
+
+        Returns:
+            ChainlitFeedbackService: A fully configured feedback service instance.
+        """
         langfuse_client = LangfuseClientFactory.create(configuration.langfuse)
         langfuse_dataset_service = LangfuseDatasetServiceFactory.create(
             configuration.langfuse

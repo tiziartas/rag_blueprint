@@ -12,6 +12,16 @@ from augmentation.components.synthesizers.tree.synthesizer import (
 
 
 def register() -> None:
+    """
+    Registers the Tree synthesizer component with the application's registry system.
+
+    This function performs two registrations:
+    1. Registers the TreeSynthesizerConfiguration with the configuration registry under the TREE name
+    2. Registers the TreeSynthesizerFactory with the synthesizer registry under the TREE name
+
+    These registrations enable the application to instantiate and configure Tree synthesizers
+    when requested by name.
+    """
     SynthesizerConfigurationRegistry.register(
         SynthesizerName.TREE, TreeSynthesizerConfiguration
     )

@@ -20,26 +20,36 @@ class ConfluenceDatasourceConfiguration(DatasourceConfiguration):
 
         username: SecretStr = Field(
             ...,
-            description="The username for the confluence data source",
+            description="Username credential used to authenticate with the Confluence instance",
         )
         password: SecretStr = Field(
             ...,
-            description="The password for the confluence data source",
+            description="Password credential used to authenticate with the Confluence instance",
         )
 
     host: str = Field(
-        "127.0.0.1", description="Host of the vector store server"
+        "127.0.0.1",
+        description="Hostname or IP address of the Confluence server instance",
     )
     protocol: Union[Literal["http"], Literal["https"]] = Field(
-        "http", description="The protocol for the vector store."
+        "http",
+        description="Communication protocol used to connect to the Confluence server",
     )
     name: Literal[DatasourceName.CONFLUENCE] = Field(
-        ..., description="The name of the data source."
+        ...,
+        description="Identifier specifying this configuration is for a Confluence datasource",
     )
     secrets: Secrets = Field(
-        None, description="The secrets for the data source."
+        None,
+        description="Authentication credentials required to access the Confluence instance",
     )
 
     @property
     def base_url(self) -> str:
+        """
+        Constructs the complete base URL for the Confluence API from the protocol and host.
+
+        Returns:
+            str: The fully formed base URL to the Confluence instance
+        """
         return f"{self.protocol}://{self.host}"

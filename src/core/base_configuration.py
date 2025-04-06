@@ -19,6 +19,12 @@ from core.base_factory import ConfigurationRegistry
 
 
 class BaseConfiguration(BaseModel, ABC):
+    """
+    Base abstract class for all configuration models.
+
+    Provides common functionality like hashing for configuration objects.
+    Extend this class to create specific configuration types.
+    """
 
     def __hash__(self) -> int:
         """Not the most efficient way of hashing, but it works for now."""
@@ -33,12 +39,13 @@ class BaseConfiguration(BaseModel, ABC):
         registry: Type[ConfigurationRegistry],
     ) -> Any:
         """
-        Function is invoked before the model is validated. It is used to validate the value of the field.
-        If registry is defined in the field's metadata, it is used to validate the value.
-        Otherwise, the value is returned as is.
+        Validates the value against the type defined in the registry.
+
         Args:
             value (Any): The value of the field.
             info (ValidationInfo): The information about the field.
+            registry (Type[ConfigurationRegistry]): The registry to use for validation.
+
         Returns:
             Any: The validated value.
         """
@@ -50,6 +57,14 @@ class BaseConfiguration(BaseModel, ABC):
 
 
 class BaseSecrets(BaseConfiguration, BaseSettings):
+    """
+    Base class for secrets management.
+
+    Extends both BaseConfiguration and BaseSettings to handle sensitive configuration
+    data like API keys, passwords, etc. Uses Pydantic's BaseSettings for environment
+    variable and file-based loading.
+    """
+
     model_config = ConfigDict(
         extra="ignore",
     )
@@ -57,13 +72,17 @@ class BaseSecrets(BaseConfiguration, BaseSettings):
 
 class BaseConfigurationWithSecrets(BaseConfiguration):
     """
-    Abstract model for configuration's secrets handling. Extending class has to implement `secrets` field with correspodning type.
+    Abstract model for configuration's secrets handling.
+
+    Provides functionality to automatically load and validate secrets from
+    environment variables or files. Extending class has to implement `secrets`
+    field with corresponding type.
     """
 
     secrets: BaseSecrets = Field(
         None,
-        description="`EmptySecrets` is meant for the the configuration that does not require secrets."
-        "In other case `EmptySecrets` should be replaced with the corresponding secrets class.",
+        description="`BaseSecrets` is meant for the the configuration that does not require secrets."
+        "In other case `BaseSecrets` should be replaced with the corresponding secrets class.",
     )
 
     def model_post_init(self, context: Any) -> None:
@@ -71,22 +90,22 @@ class BaseConfigurationWithSecrets(BaseConfiguration):
         Function is invoked after the model is initialized. It is used to initialize secrets.
 
         Args:
-            context (Any): The context passed to the pydantic model.
+            context (Any): The context passed to the pydantic model, must contain 'secrets_file' key.
         """
         self.secrets = self._get_secrets(secrets_file=context["secrets_file"])
 
     def _get_secrets(self, secrets_file: str) -> BaseSettings:
         """
-        Function to initialize secrets.
+        Function to initialize secrets from the specified file.
 
         Args:
             secrets_file (str): The path to the secrets file.
 
         Returns:
-            BaseSettings: The secrets object.
+            BaseSettings: The initialized secrets object.
 
         Raises:
-            ValueError: If secrets are not found.
+            ValueError: If secrets are not found or cannot be loaded.
         """
         secrets_class = self.model_fields["secrets"].annotation
         secrets = secrets_class(_env_file=secrets_file)
@@ -96,6 +115,13 @@ class BaseConfigurationWithSecrets(BaseConfiguration):
 
 
 class LogLevelName(str, Enum):
+    """
+    Enumeration of available logging levels.
+
+    Provides a mapping between string log levels and their corresponding
+    logging constants.
+    """
+
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -109,6 +135,12 @@ class LogLevelName(str, Enum):
 
 
 class EnvironmentName(str, Enum):
+    """
+    Enumeration of available environments.
+
+    Defines the possible runtime environments for the application.
+    """
+
     DEFAULT = "default"
     LOCAL = "local"
     DEV = "dev"
@@ -117,6 +149,10 @@ class EnvironmentName(str, Enum):
 
 
 class MetadataConfiguration(BaseConfiguration):
+    """
+    Configuration for application metadata. Fields are read from the command line arguments.
+    """
+
     environment: EnvironmentName = Field(
         EnvironmentName.LOCAL,
         description="The environment of the application.",
@@ -137,6 +173,17 @@ class MetadataConfiguration(BaseConfiguration):
     @model_validator(mode="before")
     @classmethod
     def validate_from_args(cls, data: dict) -> dict:
+        """
+        Validate configuration data from command-line arguments.
+
+        Parses known arguments and validates them against the model fields.
+
+        Args:
+            data (dict): The configuration data.
+
+        Returns:
+            dict: The validated configuration data.
+        """
         parser = cls._get_parser()
         args, _ = parser.parse_known_args()
         return cls._get_data(data=data, args=args)
@@ -163,7 +210,7 @@ class MetadataConfiguration(BaseConfiguration):
     @classmethod
     def _get_parser(cls) -> argparse.ArgumentParser:
         """
-        Function to initialize the argument parser.
+        Function to initialize the argument parser to read arguments from command line.
 
         Returns:
             argparse.ArgumentParser: The argument parser.
@@ -199,6 +246,12 @@ class MetadataConfiguration(BaseConfiguration):
 
 
 class BasicConfiguration(BaseConfiguration):
+    """
+    Standard configuration class with metadata support.
+
+    Includes a metadata field for storing application-specific settings.
+    """
+
     metadata: Optional[MetadataConfiguration] = Field(
         None, description="Metadata of the run."
     )
