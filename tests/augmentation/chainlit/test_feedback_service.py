@@ -20,6 +20,9 @@ from augmentation.bootstrap.configuration.langfuse_configuration import (
     LangfuseDatasetConfiguration,
 )
 from augmentation.chainlit.feedback_service import ChainlitFeedbackService
+from augmentation.components.llms.core.base_output_extractor import (
+    BaseLlamaindexLLMOutputExtractor,
+)
 from augmentation.langfuse.dataset_service import LangfuseDatasetService
 
 
@@ -80,11 +83,13 @@ class Arrangements:
         )
         self.feedback_dataset.name = "feedback_dataset"
         self.chainlit_tag_format: str = "chainlit_tag_format: {message_id}"
+        self.output_extractor = Mock(spec=BaseLlamaindexLLMOutputExtractor)
         self.service = ChainlitFeedbackService(
             langfuse_dataset_service=self.langfuse_dataset_service,
             langfuse_client=self.langfuse_client,
             feedback_dataset=self.feedback_dataset,
             chainlit_tag_format=self.chainlit_tag_format,
+            output_extractor=self.output_extractor,
         )
 
     def on_fetch_traces_return_no_traces(self) -> "Arrangements":

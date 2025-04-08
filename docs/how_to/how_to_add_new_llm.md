@@ -100,7 +100,47 @@ class OpenaAILLMFactory(SingletonFactory):
         )
 ```
 
-## Step 5: LLM Integration
+## Step 5: LLM Output Extractor
+
+Human feedback feature between Chainlit and Langfuse require extraction of information about LLM response. Each provider returns the differently structured output dictionary. Therefore, we need to implement an extractor of required fields. Create `output_extractor.py`:
+
+```py
+from typing import Type
+from langfuse.api.resources.commons.types.trace_with_details import (
+    TraceWithDetails,
+)
+from augmentation.components.llms.core.base_output_extractor import (
+    BaseLlamaindexLLMOutputExtractor,
+)
+from augmentation.components.llms.openai.configuration import (
+    OpenAILLMConfiguration,
+)
+from core.base_factory import Factory
+
+
+class OpenAILlamaindexLLMOutputExtractor(BaseLlamaindexLLMOutputExtractor):
+
+    def get_text(self, trace: TraceWithDetails) -> str:
+        return trace.output["blocks"][0]["text"]
+
+    def get_generated_by_model(self, trace: TraceWithDetails) -> str:
+        return self.configuration.name
+```
+
+Implemented interface `BaseLlamaindexLLMOutputExtractor`, provide sufficient extractor for `ChainlitFeedbackService` purposes. Now just add correspodning factory:
+
+```py
+class OpenAILlamaindexLLMOutputExtractorFactory(Factory):
+    _configuration_class: Type = OpenAILLMConfiguration
+
+    @classmethod
+    def _create_instance(
+        cls, configuration: OpenAILLMConfiguration
+    ) -> OpenAILlamaindexLLMOutputExtractor:
+        return OpenAILlamaindexLLMOutputExtractor(configuration)
+```
+
+## Step 6: LLM Integration
 
 Create an `__init__.py` file as follows:
 
@@ -113,7 +153,13 @@ from augmentation.components.llms.openai.configuration import (
     OpenAILLMConfiguration,
 )
 from augmentation.components.llms.openai.llm import OpenaAILLMFactory
-from augmentation.components.llms.registry import LLMRegistry
+from augmentation.components.llms.openai.output_extractor import (
+    OpenAILlamaindexLLMOutputExtractorFactory,
+)
+from augmentation.components.llms.registry import (
+    LlamaindexLLMOutputExtractorRegistry,
+    LLMRegistry,
+)
 
 
 def register() -> None:
@@ -121,10 +167,12 @@ def register() -> None:
     LLMConfigurationRegistry.register(
         LLMProviderName.OPENAI, OpenAILLMConfiguration
     )
-
+    LlamaindexLLMOutputExtractorRegistry.register(
+        LLMProviderName.OPENAI, OpenAILlamaindexLLMOutputExtractorFactory
+    )
 ```
 
-The initialization file includes a `register()` method responsible for registering our configuration, and LLM factories. Registries are used to dynamically inform the system about available implementations. This way, with the following OpenAI configuration in `configurations/configuration.{environment}.json` file:
+The initialization file includes a `register()` method responsible for registering our configuration, output extractor and LLM factories. Registries are used to dynamically inform the system about available implementations. This way, with the following OpenAI configuration in `configurations/configuration.{environment}.json` file:
 
 ```json
 "augmentation":
@@ -160,5 +208,6 @@ src/
             └── openai/
                 ├── __init__.py
                 ├── configuration.py
-                └── llm.py
+                ├── llm.py
+                └── output_extractor.py
 ```

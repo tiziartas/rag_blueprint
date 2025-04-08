@@ -17,6 +17,12 @@ from augmentation.bootstrap.configuration.langfuse_configuration import (
     LangfuseDatasetConfiguration,
 )
 from augmentation.chainlit.exceptions import TraceNotFoundException
+from augmentation.components.llms.core.base_output_extractor import (
+    BaseLlamaindexLLMOutputExtractor,
+)
+from augmentation.components.llms.registry import (
+    LlamaindexLLMOutputExtractorRegistry,
+)
 from augmentation.langfuse.client import LangfuseClientFactory
 from augmentation.langfuse.dataset_service import (
     LangfuseDatasetService,
@@ -49,6 +55,7 @@ class ChainlitFeedbackService:
         langfuse_client: Langfuse,
         feedback_dataset: LangfuseDatasetConfiguration,
         chainlit_tag_format: str,
+        output_extractor: BaseLlamaindexLLMOutputExtractor,
         logger: logging.Logger = LoggerConfiguration.get_logger(__name__),
     ):
         """Initialize the ChainlitFeedbackService. Creates the feedback dataset if it doesn't exist.
@@ -58,12 +65,14 @@ class ChainlitFeedbackService:
             langfuse_client: Client for interacting with the Langfuse API.
             feedback_dataset: Configuration for the dataset where positive feedback is stored.
             chainlit_tag_format: Format string for generating tags to retrieve traces by message ID.
+            output_extractor: Extractor for obtaining output details from Langfuse traces.
             logger: Logger instance for recording service activities.
         """
         self.langfuse_dataset_service = langfuse_dataset_service
         self.langfuse_client = langfuse_client
         self.feedback_dataset = feedback_dataset
         self.chainlit_tag_format = chainlit_tag_format
+        self.output_extractor = output_extractor
         self.logger = logger
 
         self.langfuse_dataset_service.create_if_does_not_exist(feedback_dataset)
@@ -155,11 +164,13 @@ class ChainlitFeedbackService:
                 "templating": last_templating_observation.input,
             },
             expected_output={
-                "result": trace.output.get("text"),
+                "result": self.output_extractor.get_text(trace),
             },
             source_trace_id=trace.id,
             metadata={
-                "generated_by": trace.output.get("raw").get("model"),
+                "generated_by": self.output_extractor.get_generated_by_model(
+                    trace
+                ),
             },
         )
 
@@ -250,9 +261,13 @@ class ChainlitFeedbackServiceFactory(Factory):
         )
         feedback_dataset = configuration.langfuse.datasets.feedback_dataset
         chainlit_tag_format = configuration.langfuse.chainlit_tag_format
+        output_extractor = LlamaindexLLMOutputExtractorRegistry.get(
+            configuration.query_engine.synthesizer.llm.provider
+        ).create(configuration.query_engine.synthesizer.llm)
         return ChainlitFeedbackService(
             langfuse_client=langfuse_client,
             langfuse_dataset_service=langfuse_dataset_service,
             feedback_dataset=feedback_dataset,
             chainlit_tag_format=chainlit_tag_format,
+            output_extractor=output_extractor,
         )

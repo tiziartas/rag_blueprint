@@ -20,3 +20,19 @@ class LLMRegistry(Registry):
     """
 
     _key_class: Type = LLMProviderName
+
+
+class LlamaindexLLMOutputExtractorRegistry(Registry):
+    """
+    Registry for Llamaindex LLM Output Extractors.
+
+    This registry maps Llamaindex LLM Output Extractor names to their
+    corresponding implementation classes. It allows for dynamic registration
+    and retrieval of Llamaindex LLM Output Extractor implementations based on
+    their enumerated types.
+
+    Attributes:
+        _key_class (Type): The class used as the key for the registry.
+    """
+
+    _key_class: Type = LLMProviderName
