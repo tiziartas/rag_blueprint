@@ -1,6 +1,6 @@
 # How to Add a New Vector Store Implementation
 
-This guide demonstrates how to add support for a new vector store implementation, using `Chroma` as an example. The implementation is defined in [vector_store_configuration.py](https://github.com/feld-m/rag_blueprint/blob/main/src/embedding/bootstrap/configuration/vector_store_configuration.py).
+This guide demonstrates how to add support for a new vector store implementation, using `Chroma` as an example.
 
 ## Architecture
 

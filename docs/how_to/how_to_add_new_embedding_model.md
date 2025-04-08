@@ -22,7 +22,7 @@ embedding = [
 
 ## Step 2: Embedding Model Enum
 
-Embedding model configuration is scoped by provider. Each provider, such as [Voyage](https://www.voyageai.com/), requires its own Pydantic configuration class. Begin by assigning a meaningful name to the new provider in the `LLMProviderName` enumeration in [embedding_model_configuration.py](https://github.com/feld-m/rag_blueprint/blob/main/src/embedding/bootstrap/configuration/embedding_models.py):
+Embedding model configuration is scoped by provider. Each provider, such as [Voyage](https://www.voyageai.com/), requires its own Pydantic configuration class. Begin by assigning a meaningful name to the new provider in the `LLMProviderName` enumeration in [embedding_model_configuration.py](https://github.com/feld-m/rag_blueprint/blob/main/src/embedding/bootstrap/configuration/embedding_model_configuration.py):
 
 ```py
 class EmbeddingModelProviderName(str, Enum):

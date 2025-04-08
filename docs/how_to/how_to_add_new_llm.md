@@ -1,6 +1,6 @@
 # How to Add a New LLM Implementation
 
-This guide demonstrates how to add support for a new Language Model (LLM) implementation, using OpenAI as an example. The implementation is defined in [llm_configuration.py](https://github.com/feld-m/rag_blueprint/blob/main/src/common/bootstrap/configuration/pipeline/augmentation/query_engine/llm_configuration.py).
+This guide demonstrates how to add support for a new Language Model (LLM) implementation, using OpenAI as an example.
 
 ## Architecture
 
