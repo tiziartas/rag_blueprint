@@ -37,10 +37,8 @@ services:
   # Base services
   qdrant:
     image: qdrant/qdrant:v1.9.0
-    environment:
-      QDRANT__SERVICE__REST_PORT: ${RAG__VECTOR_STORE__PORT_REST}
     ports:
-      - "${RAG__VECTOR_STORE__PORT_REST}:${RAG__VECTOR_STORE__PORT_REST}"
+      - "${RAG__VECTOR_STORE__PORT_REST}:6333"
     restart: unless-stopped
     volumes:
       - ./.docker-data/qdrant:/qdrant/storage

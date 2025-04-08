@@ -1,7 +1,7 @@
 """
-This script is used to process datasources documents and embed them into a vector storage.
-In summary, this script reads, cleans, splits, and embeds datasources documents into a vector storage.
-To run the script execute the following command from the root directory of the project:
+This script is the entry point for the embedding process.
+It initializes the embedding orchestrator and starts the embedding workflow.
+To run the script, execute the following command from the root directory of the project:
 
 > python src/embed.py
 """
@@ -9,57 +9,46 @@ To run the script execute the following command from the root directory of the p
 import asyncio
 import logging
 
-from injector import Injector
-
-from common.bootstrap.initializer import EmbeddingInitializer
-from common.exceptions import CollectionExistsException
-from embedding.orchestrators.datasource_orchestrator import (
-    DatasourceOrchestrator,
-)
-from embedding.validators.vector_store_validators import VectorStoreValidator
+from core.logger import LoggerConfiguration
+from embedding.bootstrap.initializer import EmbeddingInitializer
+from embedding.orchestrators.registry import EmbeddingOrchestratorRegistry
+from embedding.vector_stores.core.exceptions import CollectionExistsException
+from embedding.vector_stores.registry import VectorStoreValidatorRegistry
 
 
-async def run_embedding(injector: Injector):
-    """Process and embed documents from datasources.
+async def run(
+    logger: logging.Logger = LoggerConfiguration.get_logger(__name__),
+):
+    """
+    Execute the embedding process.
 
     Args:
-        injector: Dependency injection container
-
-    Note:
-        Executes extraction, embedding and storage operations
-        Exits with code 0 on success
+        logger: Logger instance for logging messages
     """
-    datasource_orchestrator = injector.get(DatasourceOrchestrator)
+    initializer = EmbeddingInitializer()
+    configuration = initializer.get_configuration()
 
-    logging.info("Starting embedding...")
-
-    await datasource_orchestrator.extract()
-    datasource_orchestrator.embed()
-    datasource_orchestrator.save_to_vector_storage()
-
-    logging.info("Embedding finished...")
-    exit(0)
-
-
-def main(injector: Injector):
-    """Execute embedding workflow with validation.
-
-    Args:
-        injector: Dependency injection container
-
-    Note:
-        Exits with code 100 if collection already exists
-    """
+    vector_store = configuration.embedding.vector_store
+    validator = VectorStoreValidatorRegistry.get(vector_store.name).create(
+        vector_store
+    )
     try:
-        vector_store_validator = injector.get(VectorStoreValidator)
-        vector_store_validator.validate()
+        validator.validate()
     except CollectionExistsException as e:
-        logging.info(f"{e.message}. Skipping embedding.")
-        exit(100)
+        logger.info(
+            f"Collection '{e.collection_name}' already exists. "
+            "Skipping embedding process."
+        )
+        return
 
-    asyncio.run(run_embedding(injector))
+    logger.info("Starting embedding process.")
+    orchestrator = EmbeddingOrchestratorRegistry.get(
+        configuration.embedding.orchestrator_name
+    ).create(configuration)
+
+    await orchestrator.embed()
+    logger.info("Embedding process finished.")
 
 
 if __name__ == "__main__":
-    injector = EmbeddingInitializer().init_injector()
-    main(injector)
+    asyncio.run(run())

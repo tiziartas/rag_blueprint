@@ -1,7 +1,7 @@
 # RAG Blueprint Documentation
 
 ## Overview
-The RAG blueprint project is a Retrieval-Augmented Generation system that integrates with several datasources to provide intelligent document search and analysis. The system combines the power of different large language models with knowledge bases to deliver accurate, context-aware responses through a chat interface.
+The RAG blueprint project is a Retrieval-Augmented Generation system that integrates with several datasources to provide intelligent document search and analysis. The system combines the power of different large language models with knowledge bases to deliver accurate, context-aware responses through a chat interface. Codebase provides out-of-the-box integration with UI and observability services.
 
 ## Data Sources
 
@@ -46,7 +46,7 @@ Check how to configure vector store [here](how_to/how_to_configure/#vector-store
 
 ## Key Features
 
-- **Multiple Knowledge Base Integration**: Seamless extraction from several Data Sources(Confluence, Notion, PDF)
+- **Multiple Knowledge Base Integration**: Seamless extraction from several Data Sources (Confluence, Notion, PDF)
 - **Wide Models Support**: Availability of numerous embedding and language models
 - **Vector Search**: Efficient similarity search using vector stores
 - **Interactive Chat**: User-friendly interface for querying knowledge on [Chainlit](https://chainlit.io/)

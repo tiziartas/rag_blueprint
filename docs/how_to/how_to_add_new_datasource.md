@@ -2,19 +2,30 @@
 
 This guide demonstrates how to add support for a new datasource implementation, using Confluence as an example.
 
-## Step 1: Add Dependencies
+## Architecture
 
-Add the required packages to `pyproject.toml`:
+Datasources are managed by the `DatasourceManager`, which aggregates required components and orchestrates them to retrieve documents, clean them, and parse them to markdown format - which is strictly required by the embedding process. The general datasource manager flow is:
+
+**Reader** -> **Parser** (Optional) -> **Cleaner** (Optional) -> **Splitter** (Optional).
+
+Therefore, adding support for a new datasource requires implementing these components and their respective manager.
+
+# Implementation
+
+## Step 1: Dependencies
+
+Add the required packages to `pyproject.toml` under the following section:
 
 ```toml
-...
-atlassian-python-api==3.41.11
-...
+[project.optional-dependencies]
+extraction = [
+    "atlassian-python-api>=3.41.19",
+    ...
+]
 ```
 
-## Step 2: Define the Datasource Type
-
-In [datasources_configuration.py](https://github.com/feld-m/rag_blueprint/blob/main/src/common/bootstrap/configuration/pipeline/embedding/datasources/datasources_configuration.py), add the new datasource to the `DatasourceName` enumeration:
+## Step 2: Datasource Enum
+In [datasources.py](https://github.com/feld-m/rag_blueprint/blob/main/src/extraction/bootstrap/configuration/datasources.py), add the new datasource to the `DatasourceName` enumeration:
 
 ```py
 class DatasourceName(str, Enum):
@@ -22,55 +33,73 @@ class DatasourceName(str, Enum):
     CONFLUENCE = "confluence"
 ```
 
-## Step 3: Configure Datasource Secrets
+## Step 3: Datasource Secrets
 
-Create a secrets class for the new datasource:
+Create a new directory `src/extraction/datasources/confluence` and create a `configuration.py` file in it. This configuration file will contain necessary fields and secrets for setup.
 
 ```py
-class ConfluenceSecrets(BaseSettings):
-    model_config = ConfigDict(
-        env_file_encoding="utf-8",
-        env_prefix="RAG__DATASOURCES__CONFLUENCE__",
-        env_nested_delimiter="__",
-        extra="ignore",
-    )
+from typing import Literal, Union
+from pydantic import ConfigDict, Field, SecretStr
+from core.base_configuration import BaseSecrets
+from extraction.bootstrap.configuration.datasources import (
+    DatasourceConfiguration,
+    DatasourceName,
+)
 
-    username: SecretStr = Field(
-        ...,
-        description="The username for the confluence data source",
-    )
-    password: SecretStr = Field(
-        ...,
-        description="The password for the confluence data source",
+class ConfluenceDatasourceConfiguration(DatasourceConfiguration):
+    class Secrets(BaseSecrets):
+        model_config = ConfigDict(
+            env_file_encoding="utf-8",
+            env_prefix="RAG__DATASOURCES__CONFLUENCE__",
+            env_nested_delimiter="__",
+            extra="ignore",
+        )
+
+        username: SecretStr = Field(
+            ...,
+            description="Username credential used to authenticate with the Confluence instance",
+        )
+        password: SecretStr = Field(
+            ...,
+            description="Password credential used to authenticate with the Confluence instance",
+        )
+
+    secrets: Secrets = Field(
+        None,
+        description="Authentication credentials required to access the Confluence instance",
     )
 ```
 
-Add the corresponding environment variables to `configurations/secrets.{environment}.env`:
+The first part is to create a configuration that extends `DatasourceConfiguration`. The `Secrets` inner class defines secret fields that will be present in the environment secret file under the `RAG__DATASOURCES__CONFLUENCE__` prefix. Add the corresponding environment variables to `configurations/secrets.{environment}.env`:
 
 ```sh
 RAG__DATASOURCES__CONFLUENCE__USERNAME=<confluence_username>
 RAG__DATASOURCES__CONFLUENCE__PASSWORD=<confluence_password>
 ```
 
-> **Note**: If your datasource doesn't require secrets you can skip this step
+> **Note**: If your datasource doesn't require secrets, you can skip this step.
 
-## Step 4: Implement the Datasource Configuration
+## Step 4: Datasource Configuration
 
-Define the configuration class for the new datasource:
+Finish up `ConfluenceDatasourceConfiguration` implementation and add the rest of the configuration required for the datasource:
 
 ```py
+...
+
 class ConfluenceDatasourceConfiguration(DatasourceConfiguration):
+    ...
+
     host: str = Field(
-        "127.0.0.1", description="Host of the vector store server"
+        "127.0.0.1",
+        description="Hostname or IP address of the Confluence server instance",
     )
     protocol: Union[Literal["http"], Literal["https"]] = Field(
-        "http", description="The protocol for the vector store."
+        "http",
+        description="Communication protocol used to connect to the Confluence server",
     )
     name: Literal[DatasourceName.CONFLUENCE] = Field(
-        ..., description="The name of the data source."
-    )
-    secrets: ConfluenceSecrets = Field(
-        None, description="The secrets for the data source."
+        ...,
+        description="Identifier specifying this configuration is for a Confluence datasource",
     )
 
     @property
@@ -78,173 +107,251 @@ class ConfluenceDatasourceConfiguration(DatasourceConfiguration):
         return f"{self.protocol}://{self.host}"
 ```
 
-Add it to `AVAILABLE_DATASOURCES`:
+`provider` field constraints the value to `DatasourceName.CONFLUENCE`, which serves as an indicator for pydantic validator.
+
+## Step 5: Confluence Document
+
+The next step is to create a Confluence document data class in `document.py`:
 
 ```py
-AVAIALBLE_DATASOURCES = Union[
-    ...,
+from extraction.datasources.core.document import BaseDocument
+
+class ConfluenceDocument(BaseDocument):
+    """Document representation for Confluence page content.
+
+    Extends BaseDocument to handle Confluence-specific document processing including
+    content extraction, metadata handling, and exclusion configuration.
+    """
+
+    pass
+```
+
+In our case, we don't need anything beyond the `BaseDocument` implementation.
+
+## Step 6: Confluence Client
+
+To create a Confluence client, we implement `ConfluenceClientFactory` in `client.py`. It extends `SingletonFactory`,
+which provides an interface for initializing a single instance for the duration of the application runtime.
+
+```py
+from typing import Type
+from atlassian import Confluence
+from core import SingletonFactory
+from extraction.datasources.confluence.configuration import (
     ConfluenceDatasourceConfiguration,
-]
-```
+)
 
-## Step 5: Project Structure
-Create the following structure for your new datasource:
-```
-src/
-└── embedding/
-    └── datasources/
-        └── confluence/
-            ├── document.py
-            ├── reader.py
-            ├── cleaner.py
-            ├── splitter.py
-            ├── builders.py
-            └── manager.py
-```
+class ConfluenceClientFactory(SingletonFactory):
+    _configuration_class: Type = ConfluenceDatasourceConfiguration
 
-## Step 6: Create Core Components
-
-### Document Class
-Create a new file `src/embedding/datasources/confluence/document.py`:
-
-```py
-class ConfluenceDocument:
-    def __init__(self, id: str, title: str, content: str, url: str):
-        self.id = id
-        self.title = title
-        self.content = content
-        self.url = url
-
-    @staticmethod
-    def from_page(page: dict, base_url: str) -> "ConfluenceDocument":
-        """Create document from Confluence page data."""
-        return ConfluenceDocument(
-            id=page["id"],
-            title=page["title"],
-            content=page["body"]["view"]["value"],
-            url=f"{base_url}{page['_links']['webui']}",
-        )
-```
-
-### Reader Component
-Create a new file `src/embedding/datasources/confluence/reader.py`:
-
-```py
-class ConfluenceReader(BaseReader):
-    def __init__(
-        self,
-        configuration: ConfluenceDatasourceConfiguration,
-        confluence_client: Confluence,
-    ):
-        self.export_limit = configuration.export_limit
-        self.confluence_client = confluence_client
-
-    async def get_all_documents_async(self) -> List[ConfluenceDocument]:
-        """Fetch and process documents from Confluence."""
-        # Implementation for fetching documents
-```
-
-### Cleaner Component
-Create a new file `src/embedding/datasources/confluence/cleaner.py`:
-
-```py
-class ConfluenceCleaner(BaseCleaner):
-    def clean(
-        self, documents: List[ConfluenceDocument]
-    ) -> List[ConfluenceDocument]:
-        """Clean and filter documents."""
-        # Implementation for cleaning documents
-```
-
-### Splitter Component
-Create a new file `src/embedding/datasources/confluence/splitter.py`:
-
-```py
-class ConfluenceSplitter(BaseSplitter):
-    def __init__(
-        self,
-        markdown_splitter: BoundEmbeddingModelMarkdownSplitter,
-    ):
-        self.markdown_splitter = markdown_splitter
-
-    def split(self, documents: List[ConfluenceDocument]) -> List[TextNode]:
-        """Split documents into text nodes."""
-        return self.markdown_splitter.split(documents)
-```
-
-## Step 7: Create Component Builders
-Create a new file `src/embedding/datasources/confluence/builders.py`:
-
-```py
-class ConfluenceClientBuilder:
-    @staticmethod
-    @inject
-    def build(configuration: ConfluenceDatasourceConfiguration) -> Confluence:
+    @classmethod
+    def _create_instance(
+        cls, configuration: ConfluenceDatasourceConfiguration
+    ) -> Confluence:
         return Confluence(
             url=configuration.base_url,
             username=configuration.secrets.username.get_secret_value(),
             password=configuration.secrets.password.get_secret_value(),
         )
-
-class ConfluenceReaderBuilder:
-    @staticmethod
-    @inject
-    def build(
-        configuration: ConfluenceDatasourceConfiguration,
-        confluence_client: Confluence,
-    ) -> ConfluenceReader:
-        return ConfluenceReader(
-            configuration=configuration,
-            confluence_client=confluence_client,
-        )
-
-# Similar builders for Cleaner and Splitter components
 ```
 
-## Step 8: Create Datasource Binder
-Update the existing [datasources_binder.py](https://github.com/feld-m/rag_blueprint/blob/main/src/common/bootstrap/configuration/pipeline/embedding/datasources/datasources_binder.py) file:
+The field `_configuration_class` defines the required configuration type. The rest involves implementing
+the required `_create_instance` method with the corresponding client initialization.
+
+## Step 7: Datasource Reader
+
+Create a Confluence reader in `reader.py` that implements the BaseReader interface:
 
 ```py
-class ConfluenceBinder(BaseBinder):
-    def bind(self) -> Type:
-        self._bind_confluence_cofuguration()
-        self._bind_client()
-        self._bind_reader()
-        self._bind_cleaner()
-        self._bind_splitter()
-        self._bind_manager()
-        return ConfluenceDatasourceManager
+from extraction.datasources.core.reader import BaseReader
+...
 
-    # Internal methods implementation...
+class ConfluenceDatasourceReader(BaseReader):
 
-class DatasourcesBinder(BaseBinder):
-    mapping = {
-        ...
-        DatasourceName.CONFLUENCE: ConfluenceBinder,
-    }
+    async def read_all_async(
+        self,
+    ) -> AsyncIterator[dict]:
+        # read Confluence pages implementation
 ```
 
-## Step 9: Example Configuration
+This method returns an iterator, which improves runtime memory management. Next, implement a factory that defines how the `ConfluenceDatasourceReader` is initialized:
 
-Add your datasource configuration to `configurations/configuration.{environment}.json`:
+```py
+from core import Factory
+...
+
+class ConfluenceDatasourceReaderFactory(Factory):
+    _configuration_class = ConfluenceDatasourceConfiguration
+
+    @classmethod
+    def _create_instance(
+        cls, configuration: ConfluenceDatasourceConfiguration
+    ) -> ConfluenceDatasourceReader:
+        client = ConfluenceClientFactory.create(configuration)
+        return ConfluenceDatasourceReader(
+            configuration=configuration,
+            client=client,
+        )
+```
+
+Note that instead of initializing the Confluence client directly, the factory uses `ConfluenceClientFactory` to handle this task.
+
+## Step 8: Datasource Parser
+
+In `parser.py` implement a parser responsible for converting the raw Confluence page to markdown format:
+
+```py
+from extraction.datasources.confluence.configuration import (
+    ConfluenceDatasourceConfiguration,
+)
+from extraction.datasources.confluence.document import ConfluenceDocument
+from extraction.datasources.core.parser import BaseParser
+
+
+class ConfluenceDatasourceParser(BaseParser[ConfluenceDocument]):
+
+    def parse(self, page: str) -> ConfluenceDocument:
+        # parse Confluence page implementation
+```
+
+As before, define a factory for the parser:
+
+```py
+class ConfluenceDatasourceParserFactory(Factory):
+    _configuration_class: Type = ConfluenceDatasourceConfiguration
+
+    @classmethod
+    def _create_instance(
+        cls, configuration: ConfluenceDatasourceConfiguration
+    ) -> ConfluenceDatasourceParser:
+        return ConfluenceDatasourceParser(configuration)
+```
+
+## Step 9: Datasource Manager
+
+To orchestrate all the previous components, we will reuse `BasicDatasourceManager` and implement a factory for it in `manager.py`:
+
+```py
+class ConfluenceDatasourceManagerFactory(Factory):
+    """Factory for creating Confluence datasource managers.
+
+    This factory generates managers that handle the extraction of content from
+    Confluence instances. It ensures proper configuration, reading, and parsing
+    of Confluence content.
+
+    Attributes:
+        _configuration_class: Configuration class used for validating and processing
+            Confluence-specific settings.
+    """
+
+    _configuration_class: Type = ConfluenceDatasourceConfiguration
+
+    @classmethod
+    def _create_instance(
+        cls, configuration: ConfluenceDatasourceConfiguration
+    ) -> BasicDatasourceManager:
+        """Create a configured Confluence datasource manager.
+
+        Sets up the necessary reader and parser components based on the provided
+        configuration and assembles them into a functional manager.
+
+        Args:
+            configuration: Configuration object containing Confluence-specific
+                parameters including authentication details, spaces to extract,
+                and other extraction options.
+
+        Returns:
+            A fully initialized datasource manager that can extract and process
+            data from Confluence.
+        """
+        reader = ConfluenceDatasourceReaderFactory.create(configuration)
+        parser = ConfluenceDatasourceParserFactory.create(configuration)
+        return BasicDatasourceManager(configuration, reader, parser)
+```
+
+Following the design pattern, `ConfluenceDatasourceManagerFactory` uses reader and parser factories to obtain the instances needed for the manager.
+
+## Step 10: Datasource Integration
+
+Create an `__init__.py` file as follows:
+
+```py
+from extraction.bootstrap.configuration.datasources import (
+    DatasourceConfigurationRegistry,
+    DatasourceName,
+)
+from extraction.datasources.confluence.configuration import (
+    ConfluenceDatasourceConfiguration,
+)
+from extraction.datasources.confluence.manager import (
+    ConfluenceDatasourceManagerFactory,
+)
+from extraction.datasources.registry import DatasourceManagerRegistry
+
+
+def register() -> None:
+    DatasourceManagerRegistry.register(
+        DatasourceName.CONFLUENCE, ConfluenceDatasourceManagerFactory
+    )
+    DatasourceConfigurationRegistry.register(
+        DatasourceName.CONFLUENCE, ConfluenceDatasourceConfiguration
+    )
+```
+
+The initialization file includes a `register()` method responsible for registering our configuration and manager factories. Registries are used to dynamically inform the system about available implementations. This way, with the following Confluence configuration in `configurations/configuration.{environment}.json` file:
 
 ```json
-{
-    "pipeline": {
-        "embedding": {
-            "datasources": [
-                {
-                    "name": "confluence",
-                    "host": "confluence.example.com",
-                    "protocol": "https",
-                    "export_limit": 100
-                }
-            ]
-        }
+    "extraction": {
+        "datasources": [
+            {
+                "name": "confluence",
+                "host": "wissen.feld-m.de",
+                "protocol": "https"
+            }
+        ]
+        ...
     }
-}
+    ...
 ```
 
-This structure follows the existing pattern used for other datasources in the project.
+We can dynamically retrieve the corresponding manager implementation by using the name specified in the configuration:
 
-After completing these steps, the new datasource will be available for use in the RAG system, capable of extracting, cleaning, and processing content for embeddings.
+```py
+datasource_config = read_datasource_from_config()
+datasource_manager = DatasourceManagerRegistry.get(datasource_config.name).create(datasource_config)
+```
+
+This mechanism is later used by `DatasourceOrchestrator` to initialize datasources defined in the configuration. These steps conclude the implementation, resulting in the following file structure:
+
+```
+src/
+└── extraction/
+    └── datasources/
+        └── confluence/
+            ├── __init__.py
+            ├── client.py
+            ├── configuration.py
+            ├── document.py
+            ├── manager.py
+            ├── parser.py
+            └── reader.py
+```
+
+## Notes
+
+Below is the `__init__` method of `BasicDatasourceManager` used in our tutorial:
+
+```py
+class BasicDatasourceManager(BaseDatasourceManager, Generic[DocType]):
+
+    def __init__(
+        self,
+        configuration: ExtractionConfiguration,
+        reader: BaseReader,
+        parser: BaseParser = BasicMarkdownParser(),
+        cleaner: BaseCleaner = BasicMarkdownCleaner(),
+        splitter: BaseSplitter = BasicMarkdownSplitter(),
+    ):
+```
+
+Note that in this guide we skipped the implementation of custom `cleaner` and `splitter` components, instead using the default ones. When building a new datasource integration, you might need to implement custom versions of these components based on your specific requirements.

@@ -1,17 +1,19 @@
 import sys
+
+sys.path.append("./src")
+
 from unittest.mock import Mock
 from uuid import uuid4
 
-sys.path.append("./src")
 import pytest
 from chainlit.types import Feedback
 
-from augmentation.chainlit.feedback import ChainlitFeedbackService
-from augmentation.chainlit.service import ChainlitService
-from common.bootstrap.configuration.pipeline.augmentation.langfuse.langfuse_configuration import (
+from augmentation.bootstrap.configuration.langfuse_configuration import (
     LangfuseDatasetConfiguration,
 )
-from common.langfuse.dataset import LangfuseDatasetService
+from augmentation.chainlit.feedback_service import ChainlitFeedbackService
+from augmentation.chainlit.service import ChainlitService
+from augmentation.langfuse.dataset_service import LangfuseDatasetService
 
 
 class Fixtures:

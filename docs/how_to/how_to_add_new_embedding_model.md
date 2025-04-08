@@ -1,167 +1,188 @@
 # How to Add a New Embedding Model Implementation
 
-This guide demonstrates how to add support for a new embedding model implementation, using OpenAI as an example. The implementation is defined in [embedding_model_configuration.py](https://github.com/feld-m/rag_blueprint/blob/main/src/common/bootstrap/configuration/pipeline/embedding/embedding_model/embedding_model_configuration.py).
+This guide demonstrates how to add support for a new embedding model implementation, using [VoyageAI](https://www.voyageai.com/) provider as an example.
 
-## Step 1: Add Dependencies
+## Architecture
 
-Add the required packages to `pyproject.toml`:
+Embedding models are used to generate the user query and datasource embeddings. These embeddings are used for semantic search and retrieval in the RAG pipeline. Therefore, adding support for a new embedding model requires implementing the configuration and [Llamaindex](https://www.llamaindex.ai/) integration.
+
+# Implementation
+
+## Step 1: Dependencies
+
+Add the required packages to `pyproject.toml` under the following section:
 
 ```toml
-...
-llama-index-embeddings-openai=0.2.4
-...
-```
-
-## Step 2: Define the Embedding Model Provider
-
-In *embedding_model_configuration.py*, add the new provider to the `EmbeddingModelProviderNames` enumeration:
-
-```py
-class EmbeddingModelProviderNames(str, Enum):
+[project.optional-dependencies]
+embedding = [
+    "llama-index-embeddings-voyageai>=0.3.5",
     ...
-    OPENAI = "openai"
+]
 ```
 
-## Step 3: Configure Embedding Model Secrets
+## Step 2: Embedding Model Enum
 
-Create a secrets class for the new provider:
+Embedding model configuration is scoped by provider. Each provider, such as [Voyage](https://www.voyageai.com/), requires its own Pydantic configuration class. Begin by assigning a meaningful name to the new provider in the `LLMProviderName` enumeration in [embedding_model_configuration.py](https://github.com/feld-m/rag_blueprint/blob/main/src/embedding/bootstrap/configuration/embedding_models.py):
 
 ```py
-class OpenAIEmbeddingModelSecrets(BaseSettings):
-    model_config = ConfigDict(
-        env_file_encoding="utf-8",
-        env_prefix="RAG__EMBEDDING_MODELS__OPEN_AI__",
-        env_nested_delimiter="__",
-        extra="ignore",
-    )
-
-    api_key: Optional[SecretStr] = Field(
-        None, description="API key for the embedding model"
-    )
+class EmbeddingModelProviderName(str, Enum):
+    ...
+    VOYAGE = "voyage"
 ```
 
-Add the corresponding environment variable to `configurations/secrets.{environment}.env`:
+## Step 3: Embedding Model Secrets And Configuration
 
-```sh
-...
-RAG__EMBEDDING_MODELS__OPEN_AI__API_KEY=<openai_api_key>
-...
-```
-
-## Step 4: Implement the Embedding Model Configuration
-
-Define the configuration class for the new provider:
+Create a new directory `src/embedding/embedding_models/voyage` and create a `configuration.py` file in it. This configuration file will contain necessary fields and secrets for setup.
 
 ```py
-class OpenAIEmbeddingModelConfiguration(EmbeddingModelConfiguration):
+from typing import Literal
+from pydantic import ConfigDict, Field, SecretStr
+from core.base_configuration import BaseSecrets
+from embedding.bootstrap.configuration.embedding_model_configuration import (
+    EmbeddingModelConfiguration,
+    EmbeddingModelProviderName,
+)
 
-    provider: Literal[EmbeddingModelProviderNames.OPENAI] = Field(
+
+class VoyageEmbeddingModelConfiguration(EmbeddingModelConfiguration):
+
+    class Secrets(BaseSecrets):
+        model_config = ConfigDict(
+            env_file_encoding="utf-8",
+            env_prefix="RAGKB__EMBEDDING_MODELS__VOYAGE__",
+            env_nested_delimiter="__",
+            extra="ignore",
+        )
+
+        api_key: SecretStr = Field(..., description="API key for the model")
+
+    provider: Literal[EmbeddingModelProviderName.VOYAGE] = Field(
         ..., description="The provider of the embedding model."
     )
-    max_request_size_in_tokens: int = Field(
-        8191,
-        description="Maximum size of the request in tokens.",
+    secrets: Secrets = Field(
+        None, description="The secrets for the language model."
     )
-    secrets: OpenAIEmbeddingModelSecrets = Field(
-        None, description="The secrets for the language embedding model."
-    )
-
-    builder: Callable = Field(
-        OpenAIEmbeddingModelBuilder.build,
-        description="The builder for the embedding model.",
-        exclude=True,
-    )
-
-    def model_post_init(self, __context):
-        super().model_post_init(__context)
-        self.batch_size = (
-            self.max_request_size_in_tokens
-            // self.splitting.chunk_size_in_tokens
-        )
 ```
 
-## Step 5: Setup Tokenizer Initialization
+The first part is to create a configuration that extends `EmbeddingModelConfiguration`. `provider` field constraints the value to `EmbeddingModelProviderName.VOYAGE`, which serves as an indicator for pydantic validator. The `Secrets` inner class defines secret fields that will be present in the environment secret file under the `RAGKB__EMBEDDING_MODELS__VOYAGE__` prefix. Add the corresponding environment variables to `configurations/secrets.{environment}.env`:
 
-Customize the `get_tokenizer` method in `EmbeddingModelConfiguration`:
+```sh
+RAGKB__EMBEDDING_MODELS__VOYAGE__API_KEY=<voyage_api_key>
+```
+
+> **Note**: If your embedding model doesn't require secrets, you can skip this step.
+
+## Step 4: Embedding Model Implementation
+
+In the `embedding_model.py` file, create singleton embedding model factory. It provides a framework, where embedding model can be retrieved through `VoyageEmbeddingModelFactory` and is initialized only once per runtime, saving up the memory (e.g. in cases of small in-memory embedding models). To do so, define expected `_configuration_class` type and provide `_create_instance` implementation using `llamaindex`.
 
 ```py
-import tiktoken
-...
-class EmbeddingModelConfiguration(BaseModel):
-    ...
-    def get_tokenizer(self) -> Callable:
-        match self.provider:
-            ...
-            case EmbeddingModelProviderNames.OPENAI:
-                return tiktoken.encoding_for_model(self.tokenizer_name).encode
-            ...
-```
-
-## Step 6: Example JSON Configuration
-
-```json
-...
-    "embedding_model": {
-        "provider": "openai",
-        "name": "text-embedding-3-small",
-        "tokenizer_name": "text-embedding-3-small",
-        "splitting": {
-            "name": "basic",
-            "chunk_overlap_in_tokens": 50,
-            "chunk_size_in_tokens": 384
-        }
-    }
-...
-```
-
-## Step 7: Expose Embedding Model Configuration
-
-Add the new configuration to `AVAILABLE_EMBEDDING_MODELS`:
-
-```py
-AVAILABLE_EMBEDDING_MODELS = Union[..., OpenAIEmbeddingModelConfiguration]
-```
-
-## Step 8: Create the Embedding Model Builder
-
-Add the builder logic to [embedding_builders.py](https://github.com/feld-m/rag_blueprint/blob/main/src/common/builders/embedding_builders.py):
-
-```py
-from typing import TYPE_CHECKING
-
-from injector import inject
-from llama_index.embeddings.openai import OpenAIEmbedding
-
-if TYPE_CHECKING:
-    from common.bootstrap.configuration.pipeline.embedding.embedding_model.embedding_model_configuration import (
-        OpenAIEmbeddingModelConfiguration,
-    )
+from typing import Callable, Type
+from llama_index.embeddings.voyageai import VoyageEmbedding
+from transformers import AutoTokenizer
+from core import SingletonFactory
+from embedding.embedding_models.voyage.configuration import (
+    VoyageEmbeddingModelConfiguration,
+)
 
 
-class OpenAIEmbeddingModelBuilder:
-    """Builder for creating OpenAI embedding model instances.
+class VoyageEmbeddingModelFactory(SingletonFactory):
+    _configuration_class: Type = VoyageEmbeddingModelConfiguration
 
-    Provides factory method to create configured OpenAIEmbedding objects.
-    """
-
-    @staticmethod
-    @inject
-    def build(
-        configuration: "OpenAIEmbeddingModelConfiguration",
-    ) -> OpenAIEmbedding:
-        """Creates a configured OpenAI embedding model.
-
-        Args:
-            configuration: Embedding model settings including API key, name and batch size.
-
-        Returns:
-            OpenAIEmbedding: Configured embedding model instance.
-        """
-        return OpenAIEmbedding(
-            api_key=configuration.secrets.api_key.get_secret_value(),
+    @classmethod
+    def _create_instance(
+        cls, configuration: VoyageEmbeddingModelConfiguration
+    ) -> VoyageEmbedding:
+        return VoyageEmbedding(
+            voyage_api_key=configuration.secrets.api_key.get_secret_value(),
             model_name=configuration.name,
             embed_batch_size=configuration.batch_size,
         )
 ```
 
-After completing these steps, the OpenAI embedding models are ready to be configured and used in the RAG System.
+In the same file implement a factory that defines the tokenizer used along with this embedding model. For the same reasons as previously we use singleton factory.
+
+```py
+class VoyageEmbeddingModelTokenizerFactory(SingletonFactory):
+    _configuration_class: Type = VoyageEmbeddingModelConfiguration
+
+    @classmethod
+    def _create_instance(
+        cls, configuration: VoyageEmbeddingModelConfiguration
+    ) -> Callable:
+        return AutoTokenizer.from_pretrained(
+            configuration.tokenizer_name
+        ).tokenize
+```
+
+## Step 7: Embedding Model Integration
+
+Create an `__init__.py` file as follows:
+
+```py
+from embedding.bootstrap.configuration.embedding_model_configuration import (
+    EmbeddingModelConfigurationRegistry,
+    EmbeddingModelProviderName,
+)
+from embedding.embedding_models.registry import (
+    EmbeddingModelRegistry,
+    EmbeddingModelTokenizerRegistry,
+)
+from embedding.embedding_models.voyage.configuration import (
+    VoyageEmbeddingModelConfiguration,
+)
+from embedding.embedding_models.voyage.embedding_model import (
+    VoyageEmbeddingModelFactory,
+    VoyageEmbeddingModelTokenizerFactory,
+)
+
+def register():
+    EmbeddingModelConfigurationRegistry.register(
+        EmbeddingModelProviderName.VOYAGE, VoyageEmbeddingModelConfiguration
+    )
+    EmbeddingModelRegistry.register(
+        EmbeddingModelProviderName.VOYAGE, VoyageEmbeddingModelFactory
+    )
+    EmbeddingModelTokenizerRegistry.register(
+        EmbeddingModelProviderName.VOYAGE, VoyageEmbeddingModelTokenizerFactory
+    )
+```
+
+The initialization file includes a `register()` method responsible for registering our configuration, embedding model and its tokenizer factories. Registries are used to dynamically inform the system about available implementations. This way, with the following Voyage configuration in `configurations/configuration.{environment}.json` file:
+
+```json
+    "embedding": {
+        "embedding_model": {
+            "provider": "voyage",
+            "name": "voyage-3", // any model name compatible with VoyageAI API
+            "tokenizer_name": "voyageai/voyage-3", // any tokenizer name compatible with VoyageAI and AutoTokenizer
+            "splitter": {
+                "chunk_overlap_in_tokens": 50,
+                "chunk_size_in_tokens": 384
+            }
+        }
+        ...
+    }
+    ...
+```
+
+**_Note_**: You can use any `model_name` and `tokenizer_name` exposed by VoyageAI
+
+We can dynamically retrieve the corresponding embedding model implementation by using the name specified in the configuration:
+
+```py
+embedding_model_config = read_embedding_model_from_config()
+embedding_model = EmbeddingModelRegistry.get(embedding_model_config.name).create(embedding_model_config)
+```
+
+This mechanism is later used by the embedding manager to initialize the embedding model defined in the configuration. These steps conclude the implementation, resulting in the following file structure:
+
+```
+src/
+└── embedding/
+    └── embedding_models/
+        └── voyage/
+            ├── __init__.py
+            ├── configuration.py
+            └── embedding_model.py
+```

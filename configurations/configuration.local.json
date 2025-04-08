@@ -1,81 +1,75 @@
 {
-    "metadata": {
-        "log_level": "info"
+    "extraction": {
+        "datasources": [
+            {
+                "name": "pdf",
+                "export_limit": 5,
+                "base_path": "data/bavarian_beer"
+            }
+        ]
     },
-    "pipeline": {
-        "embedding": {
-            "datasources": [
-                {
-                    "name": "pdf",
-                    "export_limit": 10,
-                    "base_path": "data/bavarian_beer"
-                }
-            ],
-            "embedding_model": {
-                "provider": "hugging_face",
-                "name": "BAAI/bge-small-en-v1.5",
-                "tokenizer_name": "BAAI/bge-small-en-v1.5",
-                "splitting": {
-                    "name": "basic",
-                    "chunk_overlap_in_tokens": 50,
-                    "chunk_size_in_tokens": 384
+    "embedding": {
+        "vector_store": {
+            "name": "qdrant",
+            "collection_name": "embeddings",
+            "host": "127.0.0.1",
+            "port": 6333
+        },
+        "embedding_model": {
+            "provider": "hugging_face",
+            "name": "BAAI/bge-small-en-v1.5",
+            "tokenizer_name": "BAAI/bge-small-en-v1.5",
+            "splitter": {
+                "chunk_overlap_in_tokens": 50,
+                "chunk_size_in_tokens": 384
+            }
+        }
+    },
+    "augmentation": {
+        "query_engine": {
+            "name": "langfuse",
+            "retriever": {
+                "name": "basic",
+                "similarity_top_k": 5
+            },
+            "synthesizer": {
+                "name": "tree",
+                "llm": {
+                    "provider": "openai",
+                    "name": "gpt-4o-mini",
+                    "max_tokens": 1024,
+                    "max_retries": 3,
+                    "context_window": 16384
                 }
             },
-            "vector_store": {
-                "name": "qdrant",
-                "collection_name": "collection-local",
+            "postprocessors": []
+        },
+        "langfuse": {
+            "host": "127.0.0.1",
+            "protocol": "http",
+            "port": 3000,
+            "database": {
                 "host": "127.0.0.1",
-                "protocol": "http",
-                "ports": {
-                    "rest": 6333
-                }
+                "port": 5432,
+                "db": "langfuse"
             }
         },
-        "augmentation": {
-            "query_engine": {
-                "retriever": {
-                    "name": "basic",
-                    "similarity_top_k": 5
-                },
-                "synthesizer": {
-                    "name": "tree",
-                    "llm": {
-                        "provider": "openai",
-                        "name": "gpt-4o-mini",
-                        "max_tokens": 1024,
-                        "max_retries": 3,
-                        "context_window": 16384
-                    }
-                },
-                "postprocessors": []
-            },
-            "langfuse": {
-                "host": "127.0.0.1",
-                "protocol": "http",
-                "port": 3000,
-                "database": {
-                    "host": "127.0.0.1",
-                    "port": 5432,
-                    "db": "langfuse"
-                }
-            },
-            "chainlit": {
-                "port": 8000
-            }
+        "chainlit": {
+            "port": 8001
+        }
+    },
+    "evaluation": {
+        "judge_llm": {
+            "provider": "openai",
+            "name": "gpt-4o-mini",
+            "max_tokens": 1024,
+            "max_retries": 3,
+            "context_window": 16384
         },
-        "evaluation": {
-            "judge_llm": {
-                "provider": "openai",
-                "name": "gpt-4o-mini",
-                "max_tokens": 1024,
-                "max_retries": 3,
-                "context_window": 16384
-            },
-            "judge_embedding_model": {
-                "provider": "hugging_face",
-                "name": "BAAI/bge-small-en-v1.5",
-                "tokenizer_name": "BAAI/bge-small-en-v1.5"
-            }
+        "judge_embedding_model": {
+            "provider": "hugging_face",
+            "name": "BAAI/bge-small-en-v1.5",
+            "tokenizer_name": "BAAI/bge-small-en-v1.5"
         }
     }
 }

@@ -48,32 +48,30 @@ Blueprint allows the usage of single or multiple datasources. Adjust the corresp
 
 ```json
 {
-    "pipeline": {
-        "embedding": {
-            "datasources": [
-                {
-                    "name": "notion",
-                    "export_limit": 100
-                },
-                {
-                    "name": "pdf",
-                    "export_limit": 100,
-                    "base_path": "data/"
-                }
-            ]
-        }
+    "extraction": {
+        "datasources": [
+            {
+                "name": "notion",
+                "export_limit": 100
+            },
+            {
+                "name": "pdf",
+                "export_limit": 100,
+                "base_path": "data/"
+            }
+        ]
     }
 }
 ```
 
-Each entry in `datasources` corresponds to a single source that will be sequentially used for the extraction of documents to be further processed. The `name` of each entry must correspond to one of the implemented enums. Datasources' secrets must be added to the environment's secret file. To check configurable options for specific datasources, visit [datasources_configuration.json](https://github.com/feld-m/rag_blueprint/blob/main/src/common/bootstrap/configuration/pipeline/embedding/datasources/datasources_configuration.py).
+Each entry in `datasources` corresponds to a single source that will be sequentially used for the extraction of documents to be further processed. The `name` of each entry must correspond to one of the implemented enums. Datasources' secrets must be added to the environment's secret file. To check configurable options for specific datasources, visit `configuration.py` of a datasource.
 
 ## LLM Configuration
 
 Currently, LLMs from these providers are supported:
 
 ```py
-class LLMProviderNames(str, Enum):
+class LLMProviderName(str, Enum):
     OPENAI = "openai"
     OPENAI_LIKE = "openai-like"
 ```
@@ -84,35 +82,33 @@ Minimal setup requires the use of LLMs in augmentation and evaluation processes.
 
 ```json
 {
-    "pipeline": {
-        "augmentation": {
-            "query_engine": {
-                "synthesizer": {
-                    "name": "tree",
-                    "llm": {
-                        "provider": "openai",
-                        "name": "gpt-4o-mini",
-                        "max_tokens": 1024,
-                        "max_retries": 3,
-                        "context_window": 16384
-                    }
+    "augmentation": {
+        "query_engine": {
+            "synthesizer": {
+                "name": "tree",
+                "llm": {
+                    "provider": "openai",
+                    "name": "gpt-4o-mini",
+                    "max_tokens": 1024,
+                    "max_retries": 3,
+                    "context_window": 16384
                 }
             }
-        },
-        "evaluation": {
-            "judge_llm": {
-                "provider": "openai",
-                "name": "gpt-4o-mini",
-                "max_tokens": 1024,
-                "max_retries": 3,
-                "context_window": 16384
-            }
+        }
+    },
+    "evaluation": {
+        "judge_llm": {
+            "provider": "openai",
+            "name": "gpt-4o-mini",
+            "max_tokens": 1024,
+            "max_retries": 3,
+            "context_window": 16384
         }
     }
 }
 ```
 
-Providers' secrets must be added to the environment's secret file. The `provider` field must be one of the values from `LLMProviderNames`, and the `name` field indicates the specific model exposed by the provider. To check configurable options for specific providers, visit [llm_configuration.json](https://github.com/feld-m/rag_blueprint/blob/main/src/common/bootstrap/configuration/pipeline/augmentation/query_engine/llm_configuration.py).
+Providers' secrets must be added to the environment's secret file. The `provider` field must be one of the values from `LLMProviderName`, and the `name` field indicates the specific model exposed by the provider. To check configurable options for specific providers, visit `configuration.py` of an LLM.
 
 In the above case, augmentation and evaluation processes use the same LLM, which might be suboptimal. To change it, simply adjust the entry of one of these:
 
@@ -149,7 +145,7 @@ In the above case, augmentation and evaluation processes use the same LLM, which
 Currently, embedding models from these providers are supported:
 
 ```py
-class EmbeddingModelProviderNames(str, Enum):
+class EmbeddingModelProviderName(str, Enum):
     HUGGING_FACE = "hugging_face"
     OPENAI = "openai"
     VOYAGE = "voyage"
@@ -161,33 +157,28 @@ Minimal setup requires the use of embedding models in different processes. To co
 
 ```json
 {
-    "pipeline": {
-        "augmentation": {
-            "embedding_model": {
-                "provider": "hugging_face",
-                "name": "BAAI/bge-small-en-v1.5",
-                "tokenizer_name": "BAAI/bge-small-en-v1.5",
-                "splitting": {
-                    "name": "basic",
-                    "chunk_overlap_in_tokens": 50,
-                    "chunk_size_in_tokens": 384
-                }
+    "embedding": {
+        "embedding_model": {
+            "provider": "hugging_face",
+            "name": "BAAI/bge-small-en-v1.5",
+            "tokenizer_name": "BAAI/bge-small-en-v1.5",
+            "splitter": {
+                "chunk_overlap_in_tokens": 50,
+                "chunk_size_in_tokens": 384
             }
         }
     },
-    {
-        "evaluation": {
-            "judge_embedding_model": {
-                "provider": "hugging_face",
-                "name": "BAAI/bge-small-en-v1.5",
-                "tokenizer_name": "BAAI/bge-small-en-v1.5"
-            }
+    "evaluation": {
+        "judge_embedding_model": {
+            "provider": "hugging_face",
+            "name": "BAAI/bge-small-en-v1.5",
+            "tokenizer_name": "BAAI/bge-small-en-v1.5"
         }
     }
 }
 ```
 
-Providers' secrets must be added to the environment's secret file. The `provider` field must be one of the values from `EmbeddingModelProviderNames`, and the `name` field indicates the specific model exposed by the provider. The `tokenizer_name` field indicates the tokenizer used in pair with the embedding model, and it should be compatible with the specified embedding model. The `splitting` field is optional and defines how the documents should be chunked in the embedding process. To check configurable options for specific providers, visit [embedding_model_configuration.json](https://github.com/feld-m/rag_blueprint/blob/main/src/common/bootstrap/configuration/pipeline/embedding/embedding_model/embedding_model_configuration.py).
+Providers' secrets must be added to the environment's secret file. The `provider` field must be one of the values from `EmbeddingModelProviderName`, and the `name` field indicates the specific model exposed by the provider. The `tokenizer_name` field indicates the tokenizer used in pair with the embedding model, and it should be compatible with the specified embedding model. The `splitter` defines how the documents should be chunked in the embedding process and is required for `embedding` configuration. To check configurable options for specific providers, visit `configuration.py` of a embedding model.
 
 **_Note_**: The same embedding model is used for embedding and retrieval processes, therefore it is defined in the `embedding` configuration only.
 
@@ -195,28 +186,24 @@ In the above case, embedding/retrieval and evaluation processes use the same emb
 
 ```json
 {
-    "pipeline": {
-        "augmentation": {
-            "embedding_model": {
-                "provider": "hugging_face",
-                "name": "BAAI/bge-small-en-v1.5",
-                "tokenizer_name": "BAAI/bge-small-en-v1.5",
-                "splitting": {
-                    "name": "basic",
-                    "chunk_overlap_in_tokens": 50,
-                    "chunk_size_in_tokens": 384
-                }
+    "embedding": {
+        "embedding_model": {
+            "provider": "hugging_face",
+            "name": "BAAI/bge-small-en-v1.5",
+            "tokenizer_name": "BAAI/bge-small-en-v1.5",
+            "splitting": {
+                "name": "basic",
+                "chunk_overlap_in_tokens": 50,
+                "chunk_size_in_tokens": 384
             }
         }
     },
-    {
-        "evaluation": {
-            "judge_embedding_model": {
-                "provider": "openai",                       // different provider
-                "name": "text-embedding-3-small",           // different embedding model
-                "tokenizer_name": "text-embedding-3-small", // different tokenizer
-                "batch_size": 64                            // different parameters
-            }
+    "evaluation": {
+        "judge_embedding_model": {
+            "provider": "openai",                       // different provider
+            "name": "text-embedding-3-small",           // different embedding model
+            "tokenizer_name": "text-embedding-3-small", // different tokenizer
+            "batch_size": 64                            // different parameters
         }
     }
 }
@@ -237,23 +224,19 @@ To configure the vector store, update the following entry:
 
 ```json
 {
-    "pipeline": {
-        "embedding": {
-            "vector_store": {
-                "name": "qdrant",
-                "collection_name": "collection-default",
-                "host": "qdrant",
-                "protocol": "http",
-                "ports": {
-                    "rest": 6333
-                }
-            }
+    "embedding": {
+        "vector_store": {
+            "name": "qdrant",
+            "collection_name": "collection-default",
+            "host": "qdrant",
+            "protocol": "http",
+            "port": 6333
         }
     }
 }
 ```
 
-The `name` field indicates one of the vector stores from `VectorStoreName`, and the `collection_name` defines the vector store collection for embedded documents. The next fields define the connection to the vector store. Corresponding secrets must be added to the environment's secrets file. To check configurable options for specific datasources, visit [vector_store_configuration.json](https://github.com/feld-m/rag_blueprint/blob/main/src/common/bootstrap/configuration/pipeline/embedding/vector_store/vector_store_configuration.py).
+The `name` field indicates one of the vector stores from `VectorStoreName`, and the `collection_name` defines the vector store collection for embedded documents. The next fields define the connection to the vector store. Corresponding secrets must be added to the environment's secrets file. To check configurable options for specific datasources, visit `configuration.py` of a vector store.
 
 **_Note_**: If `collection_name` already exists in the vector store, the embedding process will be skipped. To run it, delete the collection or use a different name.
 
@@ -263,27 +246,25 @@ Configuration contains the entries related to Langfuse and Chainlit:
 
 ```json
 {
-    "pipeline": {
-        "augmentation": {
-            "langfuse": {
-                "host": "langfuse",
-                "protocol": "http",
-                "port": 3000,
-                "database": {
-                    "host": "langfuse-db",
-                    "port": 5432,
-                    "db": "langfuse"
-                }
-            },
-            "chainlit": {
-                "port": 8000
+    "augmentation": {
+        "langfuse": {
+            "host": "langfuse",
+            "protocol": "http",
+            "port": 3000,
+            "database": {
+                "host": "langfuse-db",
+                "port": 5432,
+                "db": "langfuse"
             }
+        },
+        "chainlit": {
+            "port": 8000
         }
     }
 }
 ```
 
-Field `chailit.port` defines on which port chat UI should be run. Fields in `langfuse` define connection details to Langfuse server and `langfuse.database` details of its database. Corresponding secrets for Langfuse have to be added to environment's secrets file. For more details check [langfuse_configuration.json](https://github.com/feld-m/rag_blueprint/blob/main/src/common/bootstrap/configuration/pipeline/augmentation/langfuse/langfuse_configuration.py)
+Field `chailit.port` defines on which port chat UI should be run. Fields in `langfuse` define connection details to Langfuse server and `langfuse.database` details of its database. Corresponding secrets for Langfuse have to be added to environment's secrets file.
 
 ## Upcoming Docs
 

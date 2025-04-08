@@ -2,12 +2,13 @@
 
 A comprehensive open-source framework for building production-ready Retrieval-Augmented Generation (RAG) systems. This blueprint simplifies the development of RAG applications while providing full control over performance, resource usage, and evaluation capabilities.
 
-While building or buying RAG systems has become increasingly accessible, deploying them as production-ready data products remains challenging. Our framework bridges this gap by providing a streamlined development experience with easy configuration and customization options, while maintaining complete oversight of performance and resource usage.
+Open-source community offers a wide range of RAG-related frameworks focus on the specific area - monitoring, visualization or processing. While building or buying RAG systems has become increasingly accessible, deploying them as production-ready data products remains challenging. Our framework bridges this gap by providing a streamlined development experience with easy configuration and customization options, while maintaining complete oversight of performance and resource usage.
 
 It comes with built-in monitoring and observability tools for better troubleshooting, integrated LLM-based metrics for evaluation, and human feedback collection capabilities. Whether you're building a lightweight knowledge base or an enterprise-grade application, this blueprint offers the flexibility and scalability needed for production deployments.
 
 <div align="center">
   <img src="res/readme/Architecture.png" width="1200">
+  <p><em>Figure 1: High-level architecture of the RAG Blueprint framework showing the main components and data flow</em></p>
 </div>
 
 ## 🚀 Features
@@ -38,7 +39,7 @@ It comes with built-in monitoring and observability tools for better troubleshoo
 ---
 
 ### Language Models
-[OpenAI](https://openai.com/) • Any [OpenAI](https://openai.com/)-compatible API models
+[OpenAI](https://openai.com/) • Any [OpenAI](https://openai.com/) API compatible models
 
 ---
 
@@ -61,40 +62,28 @@ Check the detailed [Quickstart Setup](https://feld-m.github.io/rag_blueprint/qui
 ### Data Flow
 
 1. **Extraction**:
-   - Fetches content from the data sources pages through their respective APIs
-   - Handles rate limiting and retries
-   - Extracts metadata (title, creation time, URLs, etc.)
+   - Fetches content from respective data sources
+   - Preprocess retrieved resources and parse it to markdown
 
-2. **Processing**:
-   - Markdown-aware chunking using LlamaIndex's MarkdownNodeParser
-   - Embedding generation using the selected embedding model
-   - Vector storage in Qdrant
+2. **Embedding**:
+   - Applies markdown aware splitting
+   - Embeds final nodes using the selected embedding model
+   - Saves the embeddings in the selected vector store
 
-3. **Retrieval & Generation**:
-   - Context-aware retrieval with configurable filters
-   - LLM-powered response generation
-   - Human feedback collection
+3. **Augmentation**
+   - Defines retrieval and augmentation pipeline encapusaltedi in a query engine
+   - Integrates Chainlit for UI interface
+   - Integrates Langfuse for observability of generated responses and user queries
 
-### Evaluation
+3. **Evaluation**:
+   - Uses Chainlit and Langfuse platforms for gathering human feedback
+   - Employs Ragas package for evaluating perfomance of current setup
 
-<div align="center">
-  <img src="res/readme/Human_feedback.png" width="800">
-</div>
+For more info refer to specific readmes of [Extraction](/src/extraction/README.md), [Embedding](/src/embedding/README.md), [Augmentation](/src/augmentation/README.md) and [Evaluation](/src/evaluation//README.md).
 
-The system includes comprehensive evaluation capabilities:
+### Integrations
 
-- **Automated Metrics** (via RAGAS):
-  - Faithfulness • Answer Relevancy • Context Precision • Context Recall • Harmfulness
-
-- **Human Feedback**:
-  - Integrated feedback collection through Chainlit
-  - Automatic dataset creation from positive feedback
-  - Manual expert feedback support
-
-- **Observability**:
-  - Full tracing and monitoring with Langfuse
-  - Separate traces for chat completion and deployment evaluation
-  - Integration between Chainlit and Langfuse for comprehensive tracking
+For user interface the codebase uses [Chainlit](https://chainlit.io/), which is integrated with [Langfuse](https://langfuse.com/) responsible for observability and tracing of the system. Moreover, integration enables building evaluation datasets based on the user feeback regarding the system answers. Feedback is saved in Langfuse datasets and later used by [Evaluation](/src/evaluation//README.md) module.
 
 ## 📁 Project Structure
 
@@ -103,11 +92,13 @@ The system includes comprehensive evaluation capabilities:
 ├── build/            # Build and deployment scripts
 │   └── workstation/  # Build scripts for workstation setup
 ├── configurations/   # Configuration and secrets files
+├── data/             # Data for local testing
 ├── res/              # Assets
 └── src/              # Source code
-    ├── augmentation/   # Retrieval and UI components
-    ├── common/         # Shared utilities
-    ├── embedding/      # Data extraction and embedding
+    ├── augmentation/   # Chainlit, Langfuse, and RAG processing components
+    ├── core/           # Base package
+    ├── extraction/     # Data sources extraction
+    ├── embedding/      # Data embedding
     └── evaluate/       # Evaluation system
 ├── tests/            # Unit tests
 ```
