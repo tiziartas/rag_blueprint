@@ -29,6 +29,7 @@ build_name="build-${current_epoch}"
 # Configure logging location
 log_dir="build/workstation/logs"
 log_file="${log_dir}/${build_name}.log"
+mkdir -p $log_dir
 
 # ===== PREREQUISITES CHECK =====
 

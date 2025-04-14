@@ -82,7 +82,7 @@ For the first run, it is recommended to execute the scripts in the specified ord
 Run the embedding stage script:
 
 ```sh
-python src/embed.py --env local
+python src/embed.py --env local --on-prem-config
 ```
 
 **_Note_:** The embedding process may take significant time, depending on the size of your datasource. Use `export_limit` fields in configuration to speed up the process.
@@ -92,7 +92,7 @@ python src/embed.py --env local
 Run the augmentation stage script:
 
 ```sh
-python src/augment.py --env local
+python src/augment.py --env local --on-prem-config
 ```
 
 This initializes the RAG system's query engine and the Chainlit application, leveraging the embeddings generated in the previous step.
@@ -102,7 +102,7 @@ This initializes the RAG system's query engine and the Chainlit application, lev
 Run the evaluation stage script:
 
 ```sh
-python src/evaluation.py --env local
+python src/evaluation.py --env local --on-prem-config
 ```
 
 **_Important_:** For evaluation to proceed, Langfuse datasets must be populated either manually or via Chainlit's human feedback feature. For additional details, refer to the [Evaluation Docs](../evaluation/in_progress.md).
