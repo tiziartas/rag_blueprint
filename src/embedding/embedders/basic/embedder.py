@@ -1,7 +1,6 @@
 import logging
 from typing import List, Type
 
-from llama_index.core import StorageContext, VectorStoreIndex
 from llama_index.core.base.embeddings.base import BaseEmbedding
 from llama_index.core.schema import MetadataMode, TextNode
 from llama_index.core.vector_stores.types import VectorStore
@@ -108,14 +107,7 @@ class BasicEmbedder(BaseEmbedder):
             nodes: Batch of nodes to save to the vector store
         """
         self.logger.info(f"Saving batch of {len(nodes)} nodes to vector store.")
-        storage_context = StorageContext.from_defaults(
-            vector_store=self.vector_store
-        )
-        VectorStoreIndex(
-            nodes,
-            storage_context=storage_context,
-            embed_model=self.embedding_model,
-        )
+        self.vector_store.add(nodes)
 
 
 class BasicEmbedderFactory(Factory):
