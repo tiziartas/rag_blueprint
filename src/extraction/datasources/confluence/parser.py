@@ -13,14 +13,18 @@ from extraction.datasources.core.parser import BaseParser
 
 class ConfluenceDatasourceParser(BaseParser[ConfluenceDocument]):
 
-    def __init__(self, configuration: ConfluenceDatasourceConfiguration):
+    def __init__(
+        self,
+        configuration: ConfluenceDatasourceConfiguration,
+        parser: MarkItDown = MarkItDown(),
+    ):
         """Initialize the Confluence parser with the provided configuration.
 
         Args:
             configuration: Configuration object containing Confluence connection details
         """
         self.configuration = configuration
-        self.parser = MarkItDown()
+        self.parser = parser
 
     def parse(self, page: str) -> ConfluenceDocument:
         """Parse a Confluence page into a document.

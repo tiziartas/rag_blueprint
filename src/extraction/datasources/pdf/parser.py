@@ -17,14 +17,14 @@ class PDFDatasourceParser(BaseParser[PDFDocument]):
     Uses MarkItDown to convert PDF files to markdown format for easier processing.
     """
 
-    def __init__(self):
+    def __init__(self, parser: MarkItDown = MarkItDown()):
         """
         Initialize the PDF parser.
 
         Attributes:
             parser: MarkItDown parser instance for PDF to markdown conversion
         """
-        self.parser = MarkItDown()
+        self.parser = parser
 
     def parse(self, file_path: str) -> PDFDocument:
         """
