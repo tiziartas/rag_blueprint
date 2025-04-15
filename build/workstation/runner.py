@@ -472,9 +472,9 @@ class Initialization:
         - Langfuse database
         - Langfuse
         """
-        self._init_vector_store()
         self._init_langfuse_database()
         self._init_langfuse()
+        self._init_vector_store()
 
     def _init_vector_store(self) -> None:
         """Initialize the vector store.
