@@ -66,7 +66,7 @@ services:
       - ./.docker-data/pgvector:/var/lib/postgresql/data
 
   langfuse-db:
-    image: postgres:17.2
+    image: pgvector/pgvector:pg17 # Can be reused for vector store
     environment:
       POSTGRES_USER: ${RAG__LANGFUSE__DATABASE__USER}
       POSTGRES_PASSWORD: ${RAG__LANGFUSE__DATABASE__PASSWORD}
