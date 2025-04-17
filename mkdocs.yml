@@ -70,6 +70,7 @@ nav:
         - Registry: src/augmentation/components/synthesizers/registry.md
     - Langfuse:
       - Dataset_service: src/augmentation/langfuse/dataset_service.md
+      - Prompt_service: src/augmentation/langfuse/prompt_service.md
       - Client: src/augmentation/langfuse/client.md
     - Chainlit:
       - Feedback_service: src/augmentation/chainlit/feedback_service.md
