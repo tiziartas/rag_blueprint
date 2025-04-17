@@ -39,12 +39,12 @@ jobs:
         run: |
           git checkout feld-m-ragkb-main
           git pull
-          git rebase origin/main
+          git rebase origin/feld-m-main
           git push -f origin feld-m-ragkb-main
 
       - name: Update FELD M RAG Sales Documents Branch
         run: |
           git checkout feld-m-ragsd-main
           git pull
-          git rebase origin/main
+          git rebase origin/feld-m-main
           git push -f origin feld-m-ragsd-main
