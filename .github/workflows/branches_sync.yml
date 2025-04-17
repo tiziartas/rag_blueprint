@@ -22,11 +22,29 @@ jobs:
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
-      - name: Update FELD M RAG Knowledge Base Branch
+      - name: Update main RAG Branch
         run: |
           git checkout main
           git fetch origin
+
+      - name: Update FELD M RAG Branch
+        run: |
+          git checkout feld-m-main
+          git pull
+          git rebase origin/main
+          git push -f origin feld-m-main
+
+
+      - name: Update FELD M RAG Knowledge Base Branch
+        run: |
           git checkout feld-m-ragkb-main
           git pull
           git rebase origin/main
           git push -f origin feld-m-ragkb-main
+
+      - name: Update FELD M RAG Sales Documents Branch
+        run: |
+          git checkout feld-m-ragsd-main
+          git pull
+          git rebase origin/main
+          git push -f origin feld-m-ragsd-main
