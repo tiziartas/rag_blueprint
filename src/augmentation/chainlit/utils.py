@@ -1,8 +1,13 @@
-from typing import List
+from typing import List, Type
 
 from chainlit import Message
 from llama_index.core.base.response.schema import StreamingResponse
 from llama_index.core.schema import NodeWithScore
+
+from augmentation.bootstrap.configuration.chainlit_configuration import (
+    ChainlitConfiguration,
+)
+from core.base_factory import SingletonFactory
 
 
 class ChainlitUtils:
@@ -11,30 +16,37 @@ class ChainlitUtils:
     Provides methods for managing welcome messages and reference handling in conversations.
 
     Attributes:
-        WELCOME_TEMPLATE: Template string for welcome message.
         REFERENCES_TEMPLATE: Template string for formatting references section.
     """
 
-    WELCOME_TEMPLATE = "Welcome to our Bavarian Beer Chat! 🍻 We're here to guide you through the rich tapestry of Bavarian beer culture. Whether you're curious about traditional brews, local beer festivals, or the history behind Bavaria's renowned beer purity law, you've come to the right place. Type your question below, and let's embark on this flavorful journey together. Prost!"
     REFERENCES_TEMPLATE = "\n\n**References**:\n" "{references}\n"
 
-    @staticmethod
-    def get_welcome_message() -> Message:
+    def __init__(self, configuration: ChainlitConfiguration):
+        """Initialize ChainlitUtils with configuration.
+
+        Args:
+            configuration (ChainlitConfiguration): Configuration containing settings
+                                                  like welcome message.
+        """
+        self.configuration = configuration
+
+    def get_welcome_message(self) -> Message:
         """Create and return a welcome message for the chat interface.
 
-        Creates a Message object with predefined content from the WELCOME_TEMPLATE
+        Creates a Message object with content from the configuration's welcome_message
         to greet users when they start a conversation.
 
         Returns:
             Message: A chainlit Message object with the Assistant as author
-                    and the welcome template as content.
+                    and the welcome message as content.
         """
         return Message(
-            author="Assistant", content=ChainlitUtils.WELCOME_TEMPLATE
+            author="Assistant", content=self.configuration.welcome_message
         )
 
-    @staticmethod
-    def add_references(message: Message, response: StreamingResponse) -> None:
+    def add_references(
+        self, message: Message, response: StreamingResponse
+    ) -> None:
         """Append source references to a message from a streaming response.
 
         Takes a message object and a streaming response containing source nodes,
@@ -45,12 +57,9 @@ class ChainlitUtils:
             response (StreamingResponse): A response object containing source_nodes
                                           with reference information.
         """
-        message.content += ChainlitUtils._get_references_str(
-            response.source_nodes
-        )
+        message.content += self._get_references_str(response.source_nodes)
 
-    @staticmethod
-    def _get_references_str(nodes: List[NodeWithScore]) -> str:
+    def _get_references_str(self, nodes: List[NodeWithScore]) -> str:
         """Generate a formatted references section from source nodes.
 
         Processes a list of source nodes to create a deduplicated,
@@ -64,14 +73,11 @@ class ChainlitUtils:
             str: A formatted string containing unique references in the
                  structure defined by REFERENCES_TEMPLATE.
         """
-        raw_references = [
-            ChainlitUtils._get_reference_str(node) for node in nodes
-        ]
+        raw_references = [self._get_reference_str(node) for node in nodes]
         references = "\n".join(set(raw_references))
-        return ChainlitUtils.REFERENCES_TEMPLATE.format(references=references)
+        return self.REFERENCES_TEMPLATE.format(references=references)
 
-    @staticmethod
-    def _get_reference_str(node: NodeWithScore) -> str:
+    def _get_reference_str(self, node: NodeWithScore) -> str:
         """Format a single node's reference as a markdown string.
 
         Extracts title and URL from a node's metadata and formats it
@@ -95,3 +101,32 @@ class ChainlitUtils:
             return "- [{}]({})".format(title, url)
         else:
             return f"- {title}"
+
+
+class ChainlitUtilsFactory(SingletonFactory):
+    """
+    Factory class for creating ChainlitUtils instances.
+
+    This class extends the Factory pattern to create instances of ChainlitUtils
+    based on a given ChainlitConfiguration. It ensures that the configuration
+    provided is of the correct type and handles the creation of new instances.
+
+    Attributes:
+        _configuration_class (Type): The expected type of configuration objects.
+    """
+
+    _configuration_class: Type = ChainlitConfiguration
+
+    @classmethod
+    def _create_instance(
+        cls, configuration: ChainlitConfiguration
+    ) -> ChainlitUtils:
+        """Create a new ChainlitUtils instance.
+
+        Args:
+            configuration (ChainlitConfiguration): Configuration object for ChainlitUtils.
+
+        Returns:
+            ChainlitUtils: A new instance of ChainlitUtils initialized with the given configuration.
+        """
+        return ChainlitUtils(configuration)

@@ -15,7 +15,7 @@ from augmentation.chainlit.service import (
     ChainlitService,
     ChainlitServiceFactory,
 )
-from augmentation.chainlit.utils import ChainlitUtils
+from augmentation.chainlit.utils import ChainlitUtilsFactory
 from augmentation.components.query_engines.registry import QueryEngineRegistry
 
 
@@ -45,13 +45,17 @@ async def start() -> None:
     Initialize chat session with query engine.
     Sets up session-specific query engine and displays welcome message.
     """
-    configuration = get_cached_initializer().get_configuration()
+    initializer = get_cached_initializer()
+    configuration = initializer.get_configuration()
+
     query_engine = QueryEngineRegistry.get(
         configuration.augmentation.query_engine.name
     ).create(configuration)
     query_engine.set_session_id(cl.user_session.get("id"))
     cl.user_session.set("query_engine", query_engine)
-    await ChainlitUtils.get_welcome_message().send()
+
+    utils = ChainlitUtilsFactory.create(configuration.augmentation.chainlit)
+    await utils.get_welcome_message().send()
 
 
 @cl.on_message
@@ -69,7 +73,10 @@ async def main(user_message: cl.Message) -> None:
     )
     for token in response.response_gen:
         await assistant_message.stream_token(token)
-    ChainlitUtils.add_references(assistant_message, response)
+
+    configuration = get_cached_initializer().get_configuration()
+    utils = ChainlitUtilsFactory.create(configuration.augmentation.chainlit)
+    utils.add_references(assistant_message, response)
     await assistant_message.send()
 
 
