@@ -25,7 +25,6 @@ sys.path.append("./src")
 import argparse
 import os
 import socket
-from datetime import datetime
 from enum import Enum
 
 from pydantic import Field
@@ -68,6 +67,10 @@ class BuildMetadataConfiguration(MetadataConfiguration):
         "build/workstation/logs/build.log",
         description="The name of the log file.",
     )
+    docker_compose_file: str = Field(
+        "build/workstation/docker/docker-compose.yml",
+        description="The name of the docker compose file.",
+    )
 
     @classmethod
     def _get_parser(cls):
@@ -89,6 +92,11 @@ class BuildMetadataConfiguration(MetadataConfiguration):
             type=str,
             help="The file to log the deployment output",
         )
+        parser.add_argument(
+            "--docker-compose-file",
+            type=str,
+            help="The docker compose file to use for the deployment",
+        )
         return parser
 
     @classmethod
@@ -109,6 +117,8 @@ class BuildMetadataConfiguration(MetadataConfiguration):
             data["deploy"] = True
         if args.log_file:
             data["log_file"] = args.log_file
+        if args.docker_compose_file:
+            data["docker_compose_file"] = args.docker_compose_file
         return data
 
 
@@ -282,7 +292,6 @@ class CommandRunner:
         logger: FileAndConsoleLogger,
         configuraiton: EvaluationConfiguration,
         secrets_filepath: str,
-        docker_compose_filename: str,
     ):
         """Initialize the command runner.
 
@@ -294,10 +303,9 @@ class CommandRunner:
         """
         self.logger = logger
         self.configuration = configuraiton
-        self.docker_compose_filename = docker_compose_filename
 
         self.docker_client = DockerClient(
-            compose_files=[docker_compose_filename],
+            compose_files=[self.configuration.metadata.docker_compose_file],
             compose_env_files=[secrets_filepath],
         )
 
@@ -582,7 +590,6 @@ def main():
         logger=initializer.logger,
         configuraiton=initializer.get_configuration(),
         secrets_filepath=initializer.configuration_retriever._get_secrets_filepath(),
-        docker_compose_filename="build/workstation/docker/docker-compose.yml",
     )
 
     if initializer.should_run_initialization():

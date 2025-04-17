@@ -64,11 +64,13 @@ echo "Running deployment script in the background. You can find live logs at ${l
 # --build-name: Unique identifier for this build
 # --log-file: Where to output detailed logs
 # --env: Target environment for deployment
+# --docker-compose-file: Path to the Docker Compose file
 # --deploy: Flag to trigger deployment procedures
 nohup python build/workstation/runner.py \
     --build-name $build_name \
     --log-file $log_file  \
     --env $env \
+    --docker-compose-file "build/workstation/docker/docker-compose.yml" \
     --deploy \
     > $log_file &
 

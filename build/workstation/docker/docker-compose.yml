@@ -1,10 +1,14 @@
+# Docker file for RAG services that use RAG base services via its docker networks.
+
 name: rag
 services:
-  # RAG services
   unit-tests:
     build:
       context: ../../..
       dockerfile: build/workstation/docker/Dockerfile.unit_tests
+    networks:
+      - rag_network
+      - rag_base_external
 
   embed:
     build:
@@ -13,6 +17,9 @@ services:
       args:
         BUILD_NAME: "default-build-name"
         ENV: "default"
+    networks:
+      - rag_network
+      - rag_base_external
 
   chat:
     build:
@@ -25,6 +32,9 @@ services:
     ports:
       -  "${RAG__CHAINLIT__PORT}:${RAG__CHAINLIT__PORT}"
     restart: unless-stopped
+    networks:
+      - rag_network
+      - rag_base_external
 
   evaluate:
     build:
@@ -33,67 +43,13 @@ services:
       args:
         BUILD_NAME: "default-build-name"
         ENV: "default"
+    networks:
+      - rag_network
+      - rag_base_external
 
-  # Base services
-  qdrant:
-    image: qdrant/qdrant:v1.9.0
-    ports:
-      - "${RAG__VECTOR_STORE__PORT_REST}:6333"
-    restart: unless-stopped
-    volumes:
-      - ./.docker-data/qdrant:/qdrant/storage
-
-  chroma:
-    image: chromadb/chroma:0.6.4.dev19
-    environment:
-      CHROMA_HOST_PORT: ${RAG__VECTOR_STORE__PORT_REST}
-    ports:
-      - "${RAG__VECTOR_STORE__PORT_REST}:${RAG__VECTOR_STORE__PORT_REST}"
-    restart: unless-stopped
-    volumes:
-      - ./.docker-data/chroma:/chroma/chroma/
-
-  pgvector:
-    image: pgvector/pgvector:pg17
-    environment:
-      POSTGRES_USER: ${RAG__VECTOR_STORE__USERNAME}
-      POSTGRES_PASSWORD: ${RAG__VECTOR_STORE__PASSWORD}
-      POSTGRES_DB: ${RAG__VECTOR_STORE__DATABASE_NAME}
-      PGPORT: ${RAG__VECTOR_STORE__PORT_REST}
-    ports:
-      - "${RAG__VECTOR_STORE__PORT_REST}:${RAG__VECTOR_STORE__PORT_REST}"
-    volumes:
-      - ./.docker-data/pgvector:/var/lib/postgresql/data
-
-  langfuse-db:
-    image: pgvector/pgvector:pg17 # Can be reused for vector store
-    environment:
-      POSTGRES_USER: ${RAG__LANGFUSE__DATABASE__USER}
-      POSTGRES_PASSWORD: ${RAG__LANGFUSE__DATABASE__PASSWORD}
-      POSTGRES_DB: ${RAG__LANGFUSE__DATABASE__NAME}
-      PGPORT: ${RAG__LANGFUSE__DATABASE__PORT}
-    ports:
-      - "${RAG__LANGFUSE__DATABASE__PORT}:${RAG__LANGFUSE__DATABASE__PORT}"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -d ${RAG__LANGFUSE__DATABASE__NAME} -U ${RAG__LANGFUSE__DATABASE__USER}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    volumes:
-      - ./.docker-data/langfuse-postgres:/var/lib/postgresql/data
-
-  langfuse:
-    image: langfuse/langfuse:2.71.0
-    depends_on:
-      langfuse-db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://${RAG__LANGFUSE__DATABASE__USER}:${RAG__LANGFUSE__DATABASE__PASSWORD}@langfuse-db:5432/${RAG__LANGFUSE__DATABASE__NAME}
-      NEXTAUTH_URL: http://localhost:3000
-      PORT: ${RAG__LANGFUSE__PORT}
-      NEXTAUTH_SECRET: mysecret
-      SALT: mysalt
-    ports:
-      - "${RAG__LANGFUSE__PORT}:${RAG__LANGFUSE__PORT}"
-    restart: unless-stopped
+networks:
+  rag_network:
+    driver: bridge
+  rag_base_external:
+    external: true
+    name: rag_base_default
