@@ -32,6 +32,10 @@ class SynthesizerConfiguration(BaseConfiguration):
     llm: Any = Field(
         ..., description="The language model configuration for the synthesizer."
     )
+    prompt_name: str = Field(
+        "default",
+        description="The name of the prompt store in Langfuse used by the synthesizer.",
+    )
     streaming: bool = Field(
         True, description="Whether streaming is enabled for the synthesizer."
     )

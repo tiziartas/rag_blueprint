@@ -213,7 +213,7 @@ class LangfuseQueryEngineFactory(Factory):
         query_engine_configuration = configuration.augmentation.query_engine
         synthesizer = SynthesizerRegistry.get(
             query_engine_configuration.synthesizer.name
-        ).create(query_engine_configuration.synthesizer)
+        ).create(configuration.augmentation)
         retriever = RetrieverRegistry.get(
             query_engine_configuration.retriever.name
         ).create(configuration)

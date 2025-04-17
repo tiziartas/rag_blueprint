@@ -4,6 +4,7 @@ from typing import Type
 from augmentation.bootstrap.configuration.configuration import (
     AugmentationConfiguration,
 )
+from augmentation.langfuse.prompt_service import LangfusePromptServiceFactory
 from core.base_configuration import BaseConfiguration
 from core.base_initializer import BasePackageLoader
 from core.logger import LoggerConfiguration
@@ -80,4 +81,27 @@ class AugmentationInitializer(EmbeddingInitializer):
         super().__init__(
             configuration_class=configuration_class,
             package_loader=package_loader,
+        )
+        self._initialize_default_prompt()
+
+    def _initialize_default_prompt(self) -> None:
+        """
+        Initialize the default prompt for the augmentation process managed by Langfuse.
+        This method creates a default prompt template if it does not already exist.
+        """
+        configuration = self.get_configuration()
+        langfuse_prompt_service = LangfusePromptServiceFactory.create(
+            configuration=configuration.augmentation.langfuse
+        )
+        langfuse_prompt_service.create_prompt_if_not_exists(
+            prompt_name="default",
+            prompt_template=(
+                "Context information from multiple sources is below.\n"
+                "---------------------\n"
+                "{context_str}\n"
+                "---------------------\n"
+                "Based on the above context answer to the below query with a lot of enthusiasim and humoristic sense\n"
+                "Query: {query_str}\n"
+                "Answer: "
+            ),
         )
