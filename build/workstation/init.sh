@@ -64,11 +64,13 @@ echo "Running initialization script in the background. You can find live logs at
 # --build-name: Unique identifier for this build
 # --log-file: Where to output detailed logs
 # --env: Target environment for deployment
+# --docker-compose-file: Path to the Docker Compose file
 # --init: Flag to trigger initialization procedures
 nohup python build/workstation/runner.py \
     --build-name $build_name \
     --log-file $log_file  \
     --env $env \
+    --docker-compose-file "build/workstation/docker/docker-compose.base.yml" \
     --init \
     > $log_file &
 
