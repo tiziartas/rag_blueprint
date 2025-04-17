@@ -1,7 +1,5 @@
 import sys
 
-from augmentation.chainlit.utils import ChainlitUtils
-
 sys.path.append("./src")
 
 from unittest.mock import Mock
@@ -11,6 +9,11 @@ from chainlit import Message
 from llama_index.core.base.response.schema import StreamingResponse
 from llama_index.core.schema import NodeWithScore
 
+from augmentation.bootstrap.configuration.chainlit_configuration import (
+    ChainlitConfiguration,
+)
+from augmentation.chainlit.utils import ChainlitUtils
+
 
 class Fixtures:
 
@@ -18,6 +21,7 @@ class Fixtures:
         self.message: Message = None
         self.response: StreamingResponse = None
         self.message_prefix: str = None
+        self.configuration = Mock(spec=ChainlitConfiguration)
 
     def with_message(self, message_prefix: str) -> "Fixtures":
         self.message = Mock(spec=Message)
@@ -50,8 +54,7 @@ class Arrangements:
 
     def __init__(self, fixtures: Fixtures):
         self.fixtures = fixtures
-
-        self.service = ChainlitUtils()
+        self.service = ChainlitUtils(fixtures.configuration)
 
 
 class Assertions:
@@ -99,7 +102,7 @@ class TestConversationUtils:
         "message_prefix",
         ["Prefix 1", "Prefix 2"],
     )
-    def test_given_duplicated_nodes_when_get_welcome_message_then_message_is_returned(
+    def test_given_duplicated_nodes_when_add_references_then_references_are_added(
         self, message_prefix: str
     ):
         # Arrange
@@ -125,7 +128,7 @@ class TestConversationUtils:
         "message_prefix",
         ["Prefix 1", "Prefix 2"],
     )
-    def test_given_nodes_when_get_welcome_message_then_message_is_returned(
+    def test_given_nodes_when_add_references_then_references_are_added(
         self, message_prefix: str
     ):
         # Arrange
