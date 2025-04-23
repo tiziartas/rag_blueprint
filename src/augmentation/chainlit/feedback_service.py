@@ -262,8 +262,8 @@ class ChainlitFeedbackServiceFactory(Factory):
         feedback_dataset = configuration.langfuse.datasets.feedback_dataset
         chainlit_tag_format = configuration.langfuse.chainlit_tag_format
         output_extractor = LlamaindexLLMOutputExtractorRegistry.get(
-            configuration.query_engine.synthesizer.llm.provider
-        ).create(configuration.query_engine.synthesizer.llm)
+            configuration.chat_engine.llm.provider
+        ).create(configuration.chat_engine.llm)
         return ChainlitFeedbackService(
             langfuse_client=langfuse_client,
             langfuse_dataset_service=langfuse_dataset_service,

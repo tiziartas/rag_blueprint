@@ -5,8 +5,8 @@ from pydantic import Field, ValidationInfo, field_validator
 from augmentation.bootstrap.configuration.chainlit_configuration import (
     ChainlitConfiguration,
 )
-from augmentation.bootstrap.configuration.components.query_engine_configuration import (
-    QueryEngineConfigurationRegistry,
+from augmentation.bootstrap.configuration.components.chat_engine_configuration import (
+    ChatEngineConfigurationRegistry,
 )
 from augmentation.bootstrap.configuration.langfuse_configuration import (
     LangfuseConfiguration,
@@ -22,7 +22,7 @@ class _AugmentationConfiguration(BaseConfiguration):
     Internal configuration class for augmentation process settings.
 
     This class defines the structure for augmentation configuration including
-    Langfuse monitoring, Chainlit UI, and Query Engine components.
+    Langfuse monitoring, Chainlit UI, and Chat Engine components.
     """
 
     langfuse: LangfuseConfiguration = Field(
@@ -31,27 +31,27 @@ class _AugmentationConfiguration(BaseConfiguration):
     chainlit: ChainlitConfiguration = Field(
         ..., description="Configuration of the Chainlit."
     )
-    query_engine: Any = Field(
-        ..., description="Configuration of the Query Engine."
+    chat_engine: Any = Field(
+        ..., description="Configuration of the Chat Engine."
     )
 
-    @field_validator("query_engine")
+    @field_validator("chat_engine")
     @classmethod
-    def _validate_query_engine(cls, value: Any, info: ValidationInfo) -> Any:
+    def _validate_chat_engine(cls, value: Any, info: ValidationInfo) -> Any:
         """
-        Validates the query engine configuration using the appropriate registry.
+        Validates the chat engine configuration using the appropriate registry.
 
         Args:
-            value: The query engine configuration value to validate
+            value: The chat engine configuration value to validate
             info: Validation context information provided by Pydantic
 
         Returns:
-            The validated query engine configuration
+            The validated chat engine configuration
         """
         return super()._validate(
             value,
             info=info,
-            registry=QueryEngineConfigurationRegistry,
+            registry=ChatEngineConfigurationRegistry,
         )
 
 

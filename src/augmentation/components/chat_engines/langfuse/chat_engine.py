@@ -1,33 +1,35 @@
 from enum import Enum
-from typing import List, Type
+from typing import List, Optional, Type, Union
 
 from langfuse.client import StatefulTraceClient
 from langfuse.llama_index.llama_index import LlamaIndexCallbackHandler
-from llama_index.core.base.response.schema import RESPONSE_TYPE
-from llama_index.core.callbacks import CallbackManager
+from llama_index.core.base.llms.types import ChatMessage
+from llama_index.core.callbacks import CallbackManager, trace_method
+from llama_index.core.chat_engine import CondensePlusContextChatEngine
+from llama_index.core.chat_engine.types import StreamingAgentChatResponse
+from llama_index.core.indices.base_retriever import BaseRetriever
+from llama_index.core.llms.llm import LLM
+from llama_index.core.memory import BaseMemory, ChatMemoryBuffer
 from llama_index.core.postprocessor.types import BaseNodePostprocessor
-from llama_index.core.query_engine import CustomQueryEngine
-from llama_index.core.response_synthesizers import BaseSynthesizer
-from llama_index.core.retrievers import BaseRetriever
-from llama_index.core.schema import QueryBundle, QueryType
+from llama_index.core.prompts import PromptTemplate
 from pydantic import Field
 
 from augmentation.bootstrap.configuration.configuration import (
     AugmentationConfiguration,
 )
+from augmentation.components.chat_engines.langfuse.callback_manager import (
+    LlamaIndexCallbackManagerFactory,
+)
+from augmentation.components.llms.registry import LLMRegistry
 from augmentation.components.postprocessors.registry import (
     PostprocessorRegistry,
 )
-from augmentation.components.query_engines.langfuse.callback_manager import (
-    LlamaIndexCallbackManagerFactory,
-)
 from augmentation.components.retrievers.registry import RetrieverRegistry
-from augmentation.components.synthesizers.registry import SynthesizerRegistry
 from core.base_factory import Factory
 
 
 class SourceProcess(Enum):
-    """Enumeration of possible query processing sources.
+    """Enumeration of possible chat processing sources.
 
     Attributes:
         CHAT_COMPLETION: Query from interactive chat completion interface
@@ -38,99 +40,113 @@ class SourceProcess(Enum):
     DEPLOYMENT_EVALUATION = 2
 
 
-class LangfuseQueryEngine(CustomQueryEngine):
-    """Custom query engine implementing Retrieval-Augmented Generation (RAG).
+class LangfuseChatEngine(CondensePlusContextChatEngine):
+    """Custom chat engine implementing Retrieval-Augmented Generation (RAG).
 
     Coordinates retrieval, post-processing, and response generation for RAG workflow.
     Integrates with Langfuse for tracing and Chainlit for message tracking.
-
-    Attributes:
-        retriever: Component for retrieving relevant documents from vector store
-        postprocessors: Sequential chain of document post-processors for refining results
-        response_synthesizer: Component for generating coherent responses from retrieved context
-        callback_manager: Manager for handling observability and tracing callbacks
-        chainlit_tag_format: Format string for creating Chainlit message reference tags
     """
 
-    retriever: BaseRetriever = Field(
-        description="The retriever used to retrieve relevant nodes based on a given query."
-    )
-    postprocessors: List[BaseNodePostprocessor] = Field(
-        description="The postprocessor used to process the retrieved nodes."
-    )
-    response_synthesizer: BaseSynthesizer = Field(
-        description="The response synthesizer used to generate a response based on the retrieved nodes and the original query."
-    )
-    callback_manager: CallbackManager = Field(
-        description="The callback manager used to handle callbacks."
-    )
     chainlit_tag_format: str = Field(
         description="Format of the tag used to retrieve the trace by chainlit message id in Langfuse."
     )
 
-    def query(
+    def __init__(
         self,
-        str_or_query_bundle: QueryType,
+        retriever: BaseRetriever,
+        llm: LLM,
+        memory: BaseMemory,
+        chainlit_tag_format: str,
+        context_prompt: Optional[Union[str, PromptTemplate]] = None,
+        context_refine_prompt: Optional[Union[str, PromptTemplate]] = None,
+        condense_prompt: Optional[Union[str, PromptTemplate]] = None,
+        system_prompt: Optional[str] = None,
+        skip_condense: bool = False,
+        node_postprocessors: Optional[List[BaseNodePostprocessor]] = None,
+        callback_manager: Optional[CallbackManager] = None,
+        verbose: bool = False,
+    ):
+        """
+        Initialize LangfuseChatEngine with retriever, LLM, and optional parameters.
+
+        Args:
+            retriever: Document retriever for RAG
+            llm: Language model for response generation
+            memory: Memory buffer for chat history
+            chainlit_tag_format: Format for Chainlit message ID in Langfuse
+            context_prompt: Prompt for context generation
+            context_refine_prompt: Prompt for refining context
+            condense_prompt: Prompt for condensing context
+            system_prompt: System prompt for LLM
+            skip_condense: Flag to skip context condensing
+            node_postprocessors: List of postprocessors for node processing
+            callback_manager: Callback manager for tracing
+            verbose: Flag for verbose output
+        """
+        super().__init__(
+            retriever=retriever,
+            llm=llm,
+            memory=memory,
+            context_prompt=context_prompt,
+            context_refine_prompt=context_refine_prompt,
+            condense_prompt=condense_prompt,
+            system_prompt=system_prompt,
+            skip_condense=skip_condense,
+            node_postprocessors=node_postprocessors,
+            callback_manager=callback_manager,
+            verbose=verbose,
+        )
+        self.chainlit_tag_format = chainlit_tag_format
+
+    @trace_method("chat")
+    def stream_chat(
+        self,
+        message: str,
+        chat_history: Optional[List[ChatMessage]] = None,
         chainlit_message_id: str = None,
         source_process: SourceProcess = SourceProcess.CHAT_COMPLETION,
-    ) -> RESPONSE_TYPE:
+    ) -> StreamingAgentChatResponse:
         """Process a query using RAG pipeline with Langfuse tracing.
 
         Args:
-            str_or_query_bundle: Raw query string or structured query bundle
+            message: Raw query string to process
+            chat_history: Optional chat history for context
             chainlit_message_id: Optional ID for linking to Chainlit message in UI
             source_process: Context identifier indicating query's origin source
 
         Returns:
-            RESPONSE_TYPE: Generated response from RAG pipeline with metadata
+            AgentChatResponse: Generated response from RAG pipeline with metadata
         """
         self._set_chainlit_message_id(
             message_id=chainlit_message_id, source_process=source_process
         )
-        return super().query(str_or_query_bundle)
+        return super().stream_chat(message=message, chat_history=chat_history)
 
-    async def aquery(
+    @trace_method("chat")
+    async def astream_chat(
         self,
-        str_or_query_bundle: QueryType,
+        message: str,
+        chat_history: Optional[List[ChatMessage]] = None,
         chainlit_message_id: str = None,
         source_process: SourceProcess = SourceProcess.CHAT_COMPLETION,
-    ) -> RESPONSE_TYPE:
+    ) -> StreamingAgentChatResponse:
         """Asynchronously process a query using RAG pipeline with Langfuse tracing.
 
         Args:
-            str_or_query_bundle: Raw query string or structured query bundle
+            message: Raw query string to process
+            chat_history: Optional chat history for context
             chainlit_message_id: Optional ID for linking to Chainlit message in UI
             source_process: Context identifier indicating query's origin source
 
         Returns:
-            RESPONSE_TYPE: Generated response from RAG pipeline with metadata
+            AgentChatResponse: Generated response from RAG pipeline with metadata
         """
         self._set_chainlit_message_id(
             message_id=chainlit_message_id, source_process=source_process
         )
-        return await super().aquery(str_or_query_bundle)
-
-    def custom_query(self, query_str: str) -> RESPONSE_TYPE:
-        """Execute custom RAG query processing pipeline with explicit control flow.
-
-        Implements the core RAG workflow steps in sequence:
-        1. Retrieve relevant documents using configured retriever
-        2. Apply all registered post-processors to refine results
-        3. Synthesize final response using the configured synthesizer
-
-        Args:
-            query_str: Raw query string to process
-
-        Returns:
-            Response object containing generated answer and metadata
-        """
-        nodes = self.retriever.retrieve(query_str)
-        for postprocessor in self.postprocessors:
-            nodes = postprocessor.postprocess_nodes(
-                nodes, QueryBundle(query_str)
-            )
-        response_obj = self.response_synthesizer.synthesize(query_str, nodes)
-        return response_obj
+        return await super().astream_chat(
+            message=message, chat_history=chat_history
+        )
 
     def get_current_langfuse_trace(self) -> StatefulTraceClient:
         """Retrieve current Langfuse trace from registered callback handler.
@@ -181,13 +197,13 @@ class LangfuseQueryEngine(CustomQueryEngine):
                 )
 
 
-class LangfuseQueryEngineFactory(Factory):
-    """Factory for creating configured LangfuseQueryEngine instances.
+class LangfuseChatEngineFactory(Factory):
+    """Factory for creating configured LangfuseChatEngine instances.
 
     Constructs and connects components needed for the RAG pipeline including:
     - Retriever for document fetching
     - Postprocessors for refining results
-    - Response synthesizer for answer generation
+    - LLM for answer generation
     - Langfuse callback manager for observability
     """
 
@@ -196,8 +212,8 @@ class LangfuseQueryEngineFactory(Factory):
     @classmethod
     def _create_instance(
         cls, configuration: AugmentationConfiguration
-    ) -> LangfuseQueryEngine:
-        """Create and configure a LangfuseQueryEngine instance from configuration.
+    ) -> LangfuseChatEngine:
+        """Create and configure a LangfuseChatEngine instance from configuration.
 
         Instantiates all RAG pipeline components based on configuration settings,
         connects them with a shared callback manager for tracing, and assembles
@@ -208,12 +224,12 @@ class LangfuseQueryEngineFactory(Factory):
                            settings for all components
 
         Returns:
-            LangfuseQueryEngine: Fully configured RAG query engine with tracing
+            LangfuseChatEngine: Fully configured RAG query engine with tracing
         """
-        query_engine_configuration = configuration.augmentation.query_engine
-        synthesizer = SynthesizerRegistry.get(
-            query_engine_configuration.synthesizer.name
-        ).create(configuration.augmentation)
+        query_engine_configuration = configuration.augmentation.chat_engine
+        llm = LLMRegistry.get(query_engine_configuration.llm.provider).create(
+            query_engine_configuration.llm
+        )
         retriever = RetrieverRegistry.get(
             query_engine_configuration.retriever.name
         ).create(configuration)
@@ -228,14 +244,22 @@ class LangfuseQueryEngineFactory(Factory):
         )
 
         retriever.callback_manager = langfuse_callback_manager
-        synthesizer.callback_manager = langfuse_callback_manager
         for postprocessor in postprocessors:
             postprocessor.callback_manager = langfuse_callback_manager
 
-        return LangfuseQueryEngine(
+        memory = ChatMemoryBuffer(
+            chat_history=[], token_limit=llm.metadata.context_window - 256
+        )
+
+        return LangfuseChatEngine(
             retriever=retriever,
-            postprocessors=postprocessors,
-            response_synthesizer=synthesizer,
+            llm=llm,
+            node_postprocessors=postprocessors,
             callback_manager=langfuse_callback_manager,
+            memory=memory,
+            context_prompt=None,
+            system_prompt=None,
+            context_refine_prompt=None,
+            condense_prompt=None,
             chainlit_tag_format=configuration.augmentation.langfuse.chainlit_tag_format,
         )

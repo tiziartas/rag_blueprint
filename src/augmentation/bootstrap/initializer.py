@@ -19,7 +19,7 @@ class AugmentationPackageLoader(EmbeddingPackageLoader):
 
     Extends the EmbeddingPackageLoader to load additional packages required
     for the augmentation process, including LLMs, synthesizers, retrievers,
-    postprocessors, and query engines.
+    postprocessors, and chat engines.
     """
 
     def __init__(
@@ -46,7 +46,7 @@ class AugmentationPackageLoader(EmbeddingPackageLoader):
                 "src.augmentation.components.synthesizers",
                 "src.augmentation.components.retrievers",
                 "src.augmentation.components.postprocessors",
-                "src.augmentation.components.query_engines",
+                "src.augmentation.components.chat_engines",
             ]
         )
 

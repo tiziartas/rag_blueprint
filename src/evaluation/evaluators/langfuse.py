@@ -3,10 +3,10 @@ from typing import Type
 
 from llama_index.core.query_engine import CustomQueryEngine
 
-from augmentation.components.query_engines.langfuse.query_engine import (
+from augmentation.components.chat_engines.langfuse.chat_engine import (
     SourceProcess,
 )
-from augmentation.components.query_engines.registry import QueryEngineRegistry
+from augmentation.components.chat_engines.registry import ChatEngineRegistry
 from augmentation.langfuse.dataset_service import (
     LangfuseDatasetService,
     LangfuseDatasetServiceFactory,
@@ -21,7 +21,7 @@ from evaluation.evaluators.ragas import RagasEvaluator, RagasEvaluatorFactory
 class LangfuseEvaluator:
     """Evaluator that tracks RAG performance metrics in Langfuse.
 
-    Integrates query engine execution with RAGAS evaluation and
+    Integrates chat engine execution with RAGAS evaluation and
     publishes quality metrics to Langfuse for monitoring and analysis.
     """
 
@@ -35,7 +35,7 @@ class LangfuseEvaluator:
         """Initialize the Langfuse evaluator with required components.
 
         Args:
-            query_engine: The query engine that will generate responses
+            query_engine: The chat engine that will generate responses
             langfuse_dataset_service: Service to retrieve evaluation datasets
             ragas_evaluator: Component to calculate quality metrics
             run_metadata: Dictionary containing metadata about the evaluation run
@@ -49,7 +49,7 @@ class LangfuseEvaluator:
     def evaluate(self, dataset_name: str) -> None:
         """Run evaluation on a dataset and record results in Langfuse.
 
-        Processes each item in the dataset, generates responses using the query engine,
+        Processes each item in the dataset, generates responses using the chat engine,
         calculates evaluation metrics, and uploads all results to Langfuse for monitoring.
 
         Args:
@@ -113,25 +113,25 @@ class LangfuseEvaluatorFactory(Factory):
 
         Args:
             configuration: Complete evaluation configuration containing
-                           settings for the query engine, datasets, and metrics
+                           settings for the chat engine, datasets, and metrics
 
         Returns:
             A fully configured LangfuseEvaluator instance ready for evaluation
         """
-        query_engine = QueryEngineRegistry.get(
-            configuration.augmentation.query_engine.name
+        chat_engine = ChatEngineRegistry.get(
+            configuration.augmentation.chat_engine.name
         ).create(configuration)
         langfuse_dataset_service = LangfuseDatasetServiceFactory.create(
             configuration.augmentation.langfuse
         )
         ragas_evaluator = RagasEvaluatorFactory.create(configuration.evaluation)
         return LangfuseEvaluator(
-            query_engine=query_engine,
+            query_engine=chat_engine,
             langfuse_dataset_service=langfuse_dataset_service,
             ragas_evaluator=ragas_evaluator,
             run_metadata={
                 "build_name": configuration.metadata.build_name,
-                "llm_configuration": configuration.augmentation.query_engine.synthesizer.llm.name,
+                "llm_configuration": configuration.augmentation.chat_engine.llm.name,
                 "judge_llm_configuration": configuration.evaluation.judge_llm.name,
             },
         )

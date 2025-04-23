@@ -1,5 +1,5 @@
 """
-This script is used to handle chat interactions using the ChainLit library and a query engine.
+This script is used to handle chat interactions using the ChainLit library and a chat engine.
 Actions are observed by Langfuse.
 To make it work vector storage should be filled with the embeddings of the documents.
 To run the script execute the following command from the root directory of the project:
@@ -16,7 +16,7 @@ from augmentation.chainlit.service import (
     ChainlitServiceFactory,
 )
 from augmentation.chainlit.utils import ChainlitUtilsFactory
-from augmentation.components.query_engines.registry import QueryEngineRegistry
+from augmentation.components.chat_engines.registry import ChatEngineRegistry
 
 
 @cl.cache
@@ -42,17 +42,17 @@ def get_data_layer() -> ChainlitService:
 @cl.on_chat_start
 async def start() -> None:
     """
-    Initialize chat session with query engine.
-    Sets up session-specific query engine and displays welcome message.
+    Initialize chat session with chat engine.
+    Sets up session-specific chat engine and displays welcome message.
     """
     initializer = get_cached_initializer()
     configuration = initializer.get_configuration()
 
-    query_engine = QueryEngineRegistry.get(
-        configuration.augmentation.query_engine.name
+    chat_engine = ChatEngineRegistry.get(
+        configuration.augmentation.chat_engine.name
     ).create(configuration)
-    query_engine.set_session_id(cl.user_session.get("id"))
-    cl.user_session.set("query_engine", query_engine)
+    chat_engine.set_session_id(cl.user_session.get("id"))
+    cl.user_session.set("chat_engine", chat_engine)
 
     utils = ChainlitUtilsFactory.create(configuration.augmentation.chainlit)
     await utils.get_welcome_message().send()
@@ -66,10 +66,11 @@ async def main(user_message: cl.Message) -> None:
     Args:
         user_message: Message received from user
     """
-    query_engine = cl.user_session.get("query_engine")
+    chat_engine = cl.user_session.get("chat_engine")
     assistant_message = cl.Message(content="", author="Assistant")
-    response = await cl.make_async(query_engine.query)(
-        user_message.content, assistant_message.parent_id
+    response = await cl.make_async(chat_engine.stream_chat)(
+        message=user_message.content,
+        chainlit_message_id=assistant_message.parent_id,
     )
     for token in response.response_gen:
         await assistant_message.stream_token(token)

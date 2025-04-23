@@ -60,7 +60,7 @@ class AutoRetrieverFactory(Factory):
             embed_model=embedding_model,
         )
         retriever_configuration = (
-            configuration.augmentation.query_engine.retriever
+            configuration.augmentation.chat_engine.retriever
         )
         llm = LLMRegistry.get(retriever_configuration.llm.provider).create(
             retriever_configuration.llm

@@ -3,41 +3,41 @@ from typing import Any, List, Type
 
 from pydantic import Field, ValidationInfo, field_validator
 
+from augmentation.bootstrap.configuration.components.llm_configuration import (
+    LLMConfigurationRegistry,
+)
 from augmentation.bootstrap.configuration.components.postprocessors_configuration import (
     PostProcessorConfigurationRegistry,
 )
 from augmentation.bootstrap.configuration.components.retriever_configuration import (
     RetrieverConfigurationRegistry,
 )
-from augmentation.bootstrap.configuration.components.synthesizer_configuration import (
-    SynthesizerConfigurationRegistry,
-)
 from core.base_configuration import BaseConfiguration
 from core.base_factory import ConfigurationRegistry
 
 
-class QueryEngineName(str, Enum):
-    """Enum defining available query engine types."""
+class ChatEngineName(str, Enum):
+    """Enum defining available chat engine types."""
 
     LANGFUSE = "langfuse"
 
 
-class BaseQueryEngineConfiguration(BaseConfiguration):
-    """Base configuration class for query engines.
+class BaseChatEngineConfiguration(BaseConfiguration):
+    """Base configuration class for chat engines.
 
-    This class defines the standard configuration structure for all query engines,
-    including retriever, synthesizer, and postprocessor components.
+    This class defines the standard configuration structure for all chat engines,
+    including retriever, llm, and postprocessor components.
     """
 
     retriever: Any = Field(
         ...,
         description="The retriever configuration for the augmentation pipeline.",
     )
-    synthesizer: Any = Field(
-        ..., description="The synthesizer configuration for the query engine."
+    llm: Any = Field(
+        ..., description="The llm configuration for the chat engine."
     )
     postprocessors: List[Any] = Field(
-        ..., description="The list of postprocessors for the synthesizer."
+        ..., description="The list of postprocessors for the chat engine."
     )
 
     @field_validator("retriever")
@@ -58,22 +58,22 @@ class BaseQueryEngineConfiguration(BaseConfiguration):
             registry=RetrieverConfigurationRegistry,
         )
 
-    @field_validator("synthesizer")
+    @field_validator("llm")
     @classmethod
-    def _validate_synthesizer(cls, value: Any, info: ValidationInfo) -> Any:
-        """Validate synthesizer configuration against registered synthesizer types.
+    def _validate_llm(cls, value: Any, info: ValidationInfo) -> Any:
+        """Validate llm configuration against registered llm types.
 
         Args:
-            value: The synthesizer configuration to validate
+            value: The llm configuration to validate
             info: Validation context information
 
         Returns:
-            Validated synthesizer configuration
+            Validated llm configuration
         """
         return super()._validate(
             value,
             info=info,
-            registry=SynthesizerConfigurationRegistry,
+            registry=LLMConfigurationRegistry,
         )
 
     @field_validator("postprocessors")
@@ -97,14 +97,14 @@ class BaseQueryEngineConfiguration(BaseConfiguration):
         )
 
 
-class QueryEngineConfigurationRegistry(ConfigurationRegistry):
-    """Registry for query engine configurations.
+class ChatEngineConfigurationRegistry(ConfigurationRegistry):
+    """Registry for chat engine configurations.
 
-    Maps query engine names to their corresponding configuration classes
+    Maps chat engine names to their corresponding configuration classes
     to facilitate configuration validation and factory creation.
 
     Attributes:
-        _key_class: The enumeration class for query engine names.
+        _key_class: The enumeration class for chat engine names.
     """
 
-    _key_class: Type = QueryEngineName
+    _key_class: Type = ChatEngineName
