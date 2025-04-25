@@ -71,7 +71,7 @@ Check the detailed [Quickstart Setup](https://feld-m.github.io/rag_blueprint/qui
    - Saves the embeddings in the selected vector store
 
 3. **Augmentation**
-   - Defines retrieval and augmentation pipeline encapusaltedi in a query engine
+   - Defines retrieval and augmentation pipeline encapusalted in a chat engine
    - Integrates Chainlit for UI interface
    - Integrates Langfuse for observability of generated responses and user queries
 

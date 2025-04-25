@@ -26,7 +26,7 @@
         }
     },
     "augmentation": {
-        "query_engine": {
+        "chat_engine": {
             "name": "langfuse",
             "retriever": {
                 "name": "basic",

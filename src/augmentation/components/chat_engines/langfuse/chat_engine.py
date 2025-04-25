@@ -270,27 +270,27 @@ class LangfuseChatEngineFactory(Factory):
 
         Instantiates all RAG pipeline components based on configuration settings,
         connects them with a shared callback manager for tracing, and assembles
-        them into a complete query engine.
+        them into a complete chat engine.
 
         Args:
             configuration: Complete augmentation configuration containing
                            settings for all components
 
         Returns:
-            LangfuseChatEngine: Fully configured RAG query engine with tracing
+            LangfuseChatEngine: Fully configured RAG chat engine with tracing
         """
-        query_engine_configuration = configuration.augmentation.chat_engine
-        llm = LLMRegistry.get(query_engine_configuration.llm.provider).create(
-            query_engine_configuration.llm
+        chat_engine_configuration = configuration.augmentation.chat_engine
+        llm = LLMRegistry.get(chat_engine_configuration.llm.provider).create(
+            chat_engine_configuration.llm
         )
         retriever = RetrieverRegistry.get(
-            query_engine_configuration.retriever.name
+            chat_engine_configuration.retriever.name
         ).create(configuration)
         postprocessors = [
             PostprocessorRegistry.get(postprocessor_configuration.name).create(
                 postprocessor_configuration
             )
-            for postprocessor_configuration in query_engine_configuration.postprocessors
+            for postprocessor_configuration in chat_engine_configuration.postprocessors
         ]
         langfuse_callback_manager = LlamaIndexCallbackManagerFactory.create(
             configuration.augmentation.langfuse
@@ -326,13 +326,14 @@ class LangfuseChatEngineFactory(Factory):
     def _get_prompt_templates(
         configuration: _AugmentationConfiguration,
     ) -> str:
-        """Retrieves the prompt template for the synthesizer.
+        """Retrieves the prompt template for the augmentation process.
 
         Args:
-            configuration: Configuration object containing synthesizer settings.
+            configuration: Configuration object containing prompt templates settings.
 
         Returns:
-            The prompt template to be used by the synthesizer.
+            Tuple of prompt templates for condensing, context generation,
+            context refinement, and system prompts.
         """
         langfuse_prompt_service = LangfusePromptServiceFactory.create(
             configuration=configuration.langfuse

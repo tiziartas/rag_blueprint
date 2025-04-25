@@ -177,7 +177,7 @@ The initialization file includes a `register()` method responsible for registeri
 ```json
 "augmentation":
 {
-    "synthesizer":
+    "chat_engine":
     {
         "llm": {
             "provider": "openai",
@@ -198,7 +198,7 @@ llm_config = read_llm_from_config()
 llm_model = LLMRegistry.get(llm_config.name).create(llm_config)
 ```
 
-This mechanism is later used by the query engine to initialize the llm defined in the configuration. These steps conclude the implementation, resulting in the following file structure:
+This mechanism is later used by the chat engine to initialize the llm defined in the configuration. These steps conclude the implementation, resulting in the following file structure:
 
 ```
 src/

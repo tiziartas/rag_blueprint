@@ -25,9 +25,8 @@ For adding a new LLM support check [How to Add a New LLM Implementation](https:/
 
 - **LLMs**: Language model integrations for response generation
 - **Retrievers**: Fetch relevant documents
-- **Synthesizers**: Generate responses using retrieved context
 - **Postprocessors**: Refine retrieved documents
-- **Query Engines**: Coordinate context retrieval and answer generation
+- **Chat Engines**: Coordinate context retrieval and answer generation
 
 
 ### Supporting Components

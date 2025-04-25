@@ -83,16 +83,13 @@ Minimal setup requires the use of LLMs in augmentation and evaluation processes.
 ```json
 {
     "augmentation": {
-        "query_engine": {
-            "synthesizer": {
-                "name": "tree",
-                "llm": {
-                    "provider": "openai",
-                    "name": "gpt-4o-mini",
-                    "max_tokens": 1024,
-                    "max_retries": 3,
-                    "context_window": 16384
-                }
+        "chat_engine": {
+            "llm": {
+                "provider": "openai",
+                "name": "gpt-4o-mini",
+                "max_tokens": 1024,
+                "max_retries": 3,
+                "context_window": 16384
             }
         }
     },
@@ -116,16 +113,14 @@ In the above case, augmentation and evaluation processes use the same LLM, which
 {
     "pipeline": {
         "augmentation": {
-            "query_engine": {
-                "synthesizer": {
-                    "name": "tree",
-                    "llm": {
-                        "provider": "openai",
-                        "name": "gpt-4o-mini",
-                        "max_tokens": 1024,
-                        "max_retries": 3,
-                        "context_window": 16384
-                    }
+            "chat_engine": {
+                "llm": {
+                    "provider": "openai",
+                    "name": "gpt-4o-mini",
+                    "max_tokens": 1024,
+                    "max_retries": 3,
+                    "context_window": 16384
+                }
                 }
             }
         },
