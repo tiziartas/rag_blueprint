@@ -18,7 +18,11 @@ class Fixtures:
 
     def with_protocols(self, count: int = 3) -> "Fixtures":
         self.protocol_data = [
-            {"id": str(uuid4()), "legislaturePeriod": f"{i+19}", "number": f"{i+100}"}
+            {
+                "id": str(uuid4()),
+                "legislaturePeriod": f"{i+19}",
+                "number": f"{i+100}",
+            }
             for i in range(count)
         ]
         return self
@@ -149,9 +153,9 @@ class Assertions:
 
     def assert_speeches(self, speeches, wp, num, ain):
         key = f"{wp},{num},{ain}"
-        expected_speeches = self.fixtures.speeches_data.get(key, {"speeches": []}).get(
-            "speeches", []
-        )
+        expected_speeches = self.fixtures.speeches_data.get(
+            key, {"speeches": []}
+        ).get("speeches", [])
 
         for speech in speeches:
             if "speakerId" in speech:
@@ -189,7 +193,9 @@ class Manager:
 class TestBundestagMineClient:
     def test_get_protocols(self):
         # Arrange
-        manager = Manager(Arrangements(Fixtures().with_protocols()).mock_safe_get())
+        manager = Manager(
+            Arrangements(Fixtures().with_protocols()).mock_safe_get()
+        )
         client = manager.get_client()
 
         # Act
