@@ -12,10 +12,11 @@ from langfuse.client import (
     DatasetItemClient,
     StatefulTraceClient,
 )
-from llama_index.core.base.response.schema import Response
+from llama_index.core.chat_engine.types import AgentChatResponse
 
-from augmentation.components.query_engines.langfuse.query_engine import (
-    LangfuseQueryEngine,
+from augmentation.components.chat_engines.langfuse.chat_engine import (
+    LangfuseChatEngine,
+    SourceProcess,
 )
 from augmentation.langfuse.dataset_service import LangfuseDatasetService
 from evaluation.evaluators.langfuse import LangfuseEvaluator
@@ -28,7 +29,7 @@ class Fixtures:
         self.dataset_name: str = None
         self.dataset: DatasetClient = None
         self.items: List[DatasetItemClient] = []
-        self.response: Response = None
+        self.response: AgentChatResponse = None
         self.trace: StatefulTraceClient = None
         self.scores: dict = {}
 
@@ -43,7 +44,7 @@ class Fixtures:
         return self
 
     def with_response(self) -> "Fixtures":
-        self.response = Mock(spec=Response)
+        self.response = Mock(spec=AgentChatResponse)
         self.response.response = "response"
         return self
 
@@ -58,6 +59,7 @@ class Fixtures:
     def _create_item(self) -> DatasetItemClient:
         item = Mock(spec=DatasetItemClient)
         item.input = {"query_str": "query"}
+        item.status = "active"
         return item
 
 
@@ -66,14 +68,14 @@ class Arrangements:
     def __init__(self, fixtures: Fixtures) -> None:
         self.fixtures = fixtures
 
-        self.query_engine: LangfuseQueryEngine = Mock(spec=LangfuseQueryEngine)
+        self.chat_engine: LangfuseChatEngine = Mock(spec=LangfuseChatEngine)
         self.langfuse_dataset_service: LangfuseDatasetService = Mock(
             spec=LangfuseDatasetService
         )
         self.ragas_evaluator: RagasEvaluator = Mock(spec=RagasEvaluator)
         self.run_metadata = {"build_name": "build_name"}
         self.service = LangfuseEvaluator(
-            query_engine=self.query_engine,
+            chat_engine=self.chat_engine,
             langfuse_dataset_service=self.langfuse_dataset_service,
             ragas_evaluator=self.ragas_evaluator,
             run_metadata=self.run_metadata,
@@ -87,24 +89,18 @@ class Arrangements:
         )
         return self
 
-    def on_query_engine_query_return_response(self) -> "Arrangements":
-        response = self.fixtures.response
-
-        class ResponseMock:
-            def get_response(self) -> Response:
-                return response
-
-        self.query_engine.query.return_value = ResponseMock()
+    def on_chat_engine_chat_return_response(self) -> "Arrangements":
+        self.chat_engine.chat.return_value = self.fixtures.response
         return self
 
     def on_ragas_evaluator_evaluate_return_scores(self) -> "Arrangements":
         self.ragas_evaluator.evaluate.return_value = self.fixtures.scores
         return self
 
-    def on_query_engine_get_current_langfuse_trace_return_trace(
+    def on_chat_engine_get_current_langfuse_trace_return_trace(
         self,
     ) -> "Arrangements":
-        self.query_engine.get_current_langfuse_trace.return_value = (
+        self.chat_engine.get_current_langfuse_trace.return_value = (
             self.fixtures.trace
         )
         return self
@@ -131,6 +127,20 @@ class Assertions:
         assert (
             self.fixtures.trace.score.call_count
             == number_of_items * number_of_not_nan
+        )
+        return self
+
+    def assert_chat_called_correctly(
+        self, number_of_items: int
+    ) -> "Assertions":
+        if number_of_items <= 0:
+            return self
+
+        self.arrangements.chat_engine.chat.assert_called_with(
+            message="query",
+            chat_history=[],
+            chainlit_message_id=None,
+            source_process=SourceProcess.DEPLOYMENT_EVALUATION,
         )
         return self
 
@@ -203,9 +213,9 @@ class TestLangfuseEvaluator:
                 .with_scores(scores)
             )
             .on_langfuse_dataset_service_get_dataset_return_dataset()
-            .on_query_engine_query_return_response()
+            .on_chat_engine_chat_return_response()
             .on_ragas_evaluator_evaluate_return_scores()
-            .on_query_engine_get_current_langfuse_trace_return_trace()
+            .on_chat_engine_get_current_langfuse_trace_return_trace()
         )
         service = manager.get_service()
 
@@ -213,4 +223,6 @@ class TestLangfuseEvaluator:
         service.evaluate(manager.fixtures.dataset_name)
 
         # Assert
-        manager.assertions.assert_scores_uploaded(number_of_items)
+        manager.assertions.assert_scores_uploaded(
+            number_of_items
+        ).assert_chat_called_correctly(number_of_items)
