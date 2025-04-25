@@ -57,9 +57,7 @@ class BundestagMineClient(APIClient):
         """
         result = self.safe_get("GetProtocols")
         if not isinstance(result, list):
-            raise ResponseParseError(
-                f"Expected list of protocols, got: {result}"
-            )
+            raise ResponseParseError(f"Expected list of protocols, got: {result}")
         return result
 
     def get_agenda_items(self, protocol_id: str) -> List[Dict[str, Any]]:
@@ -145,7 +143,7 @@ class BundestagMineClient(APIClient):
 
         all_speeches: List[Dict[str, Any]] = []
 
-        for prot in protocols[:1]:
+        for prot in protocols:
             pid = prot.get("id")
             wp = prot.get("legislaturePeriod")
             num = prot.get("number")
