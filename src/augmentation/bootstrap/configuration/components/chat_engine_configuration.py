@@ -22,6 +22,36 @@ class ChatEngineName(str, Enum):
     LANGFUSE = "langfuse"
 
 
+class ChatEnginePromptTemplates(BaseConfiguration):
+
+    condense_prompt_name: str = Field(
+        "default_condense_prompt",
+        description="The name of the condense prompt to use available in Langfuse prompts. "
+        "The prompt is used to reformulate the user query based on chat history and query.",
+    )
+    context_prompt_name: str = Field(
+        "default_context_prompt",
+        description=(
+            "The name of the context prompt to use available in Langfuse prompts.",
+            "The prompt is used together with retrieved context.",
+        ),
+    )
+    context_refine_prompt_name: str = Field(
+        "default_context_refine_prompt",
+        description=(
+            "The name of the context refine prompt to use available in Langfuse prompts.",
+            "The prompt is used to refine the answer based on retrieved context.",
+        ),
+    )
+    system_prompt_name: str = Field(
+        "default_system_prompt",
+        description=(
+            "The name of the system prompt to use available in Langfuse prompts.",
+            "The prompt is used to set the system context for the chat engine.",
+        ),
+    )
+
+
 class BaseChatEngineConfiguration(BaseConfiguration):
     """Base configuration class for chat engines.
 
@@ -38,6 +68,11 @@ class BaseChatEngineConfiguration(BaseConfiguration):
     )
     postprocessors: List[Any] = Field(
         ..., description="The list of postprocessors for the chat engine."
+    )
+    prompt_templates: ChatEnginePromptTemplates = Field(
+        ...,
+        description="The prompt templates configuration for the chat engine.",
+        default_factory=ChatEnginePromptTemplates,
     )
 
     @field_validator("retriever")

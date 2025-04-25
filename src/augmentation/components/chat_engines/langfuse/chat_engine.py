@@ -16,6 +16,7 @@ from pydantic import Field
 
 from augmentation.bootstrap.configuration.configuration import (
     AugmentationConfiguration,
+    _AugmentationConfiguration,
 )
 from augmentation.components.chat_engines.langfuse.callback_manager import (
     LlamaIndexCallbackManagerFactory,
@@ -25,6 +26,7 @@ from augmentation.components.postprocessors.registry import (
     PostprocessorRegistry,
 )
 from augmentation.components.retrievers.registry import RetrieverRegistry
+from augmentation.langfuse.prompt_service import LangfusePromptServiceFactory
 from core.base_factory import Factory
 
 
@@ -242,14 +244,19 @@ class LangfuseChatEngineFactory(Factory):
         langfuse_callback_manager = LlamaIndexCallbackManagerFactory.create(
             configuration.augmentation.langfuse
         )
+        memory = ChatMemoryBuffer(
+            chat_history=[], token_limit=llm.metadata.context_window - 256
+        )
+        (
+            condense_prompt_template,
+            context_prompt_template,
+            context_refine_prompt_template,
+            system_prompt_template,
+        ) = cls._get_prompt_templates(configuration=configuration.augmentation)
 
         retriever.callback_manager = langfuse_callback_manager
         for postprocessor in postprocessors:
             postprocessor.callback_manager = langfuse_callback_manager
-
-        memory = ChatMemoryBuffer(
-            chat_history=[], token_limit=llm.metadata.context_window - 256
-        )
 
         return LangfuseChatEngine(
             retriever=retriever,
@@ -257,9 +264,45 @@ class LangfuseChatEngineFactory(Factory):
             node_postprocessors=postprocessors,
             callback_manager=langfuse_callback_manager,
             memory=memory,
-            context_prompt=None,
-            system_prompt=None,
-            context_refine_prompt=None,
-            condense_prompt=None,
+            context_prompt=context_prompt_template,
+            system_prompt=system_prompt_template,
+            context_refine_prompt=context_refine_prompt_template,
+            condense_prompt=condense_prompt_template,
             chainlit_tag_format=configuration.augmentation.langfuse.chainlit_tag_format,
+        )
+
+    @staticmethod
+    def _get_prompt_templates(
+        configuration: _AugmentationConfiguration,
+    ) -> str:
+        """Retrieves the prompt template for the synthesizer.
+
+        Args:
+            configuration: Configuration object containing synthesizer settings.
+
+        Returns:
+            The prompt template to be used by the synthesizer.
+        """
+        langfuse_prompt_service = LangfusePromptServiceFactory.create(
+            configuration=configuration.langfuse
+        )
+
+        condense_prompt_template = langfuse_prompt_service.get_prompt_template(
+            prompt_name=configuration.chat_engine.prompt_templates.condense_prompt_name
+        )
+        context_prompt_template = langfuse_prompt_service.get_prompt_template(
+            prompt_name=configuration.chat_engine.prompt_templates.context_prompt_name
+        )
+        context_refine_prompt_template = langfuse_prompt_service.get_prompt_template(
+            prompt_name=configuration.chat_engine.prompt_templates.context_refine_prompt_name
+        )
+        system_prompt_template = langfuse_prompt_service.get_prompt_template(
+            prompt_name=configuration.chat_engine.prompt_templates.system_prompt_name
+        )
+
+        return (
+            condense_prompt_template,
+            context_prompt_template,
+            context_refine_prompt_template,
+            system_prompt_template,
         )
