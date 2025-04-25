@@ -5,6 +5,7 @@ from apiclient import APIClient, retry_request
 from apiclient.exceptions import APIClientError, ResponseParseError
 
 from core import SingletonFactory
+from core.logger import LoggerConfiguration
 from extraction.datasources.bundestag.configuration import (
     BundestagMineDatasourceConfiguration,
 )
@@ -17,6 +18,7 @@ class BundestagMineClient(APIClient):
     """
 
     BASE_URL = "https://bundestag-mine.de/api/DashboardController"
+    logger = LoggerConfiguration.get_logger(__name__)
 
     def safe_get(self, path: str) -> Dict[str, Any]:
         """
@@ -45,6 +47,7 @@ class BundestagMineClient(APIClient):
 
         result = data.get("result")
         if result is None:
+            self.logger.debug(f"No result found for {url}")
             return {}
         return result
 
@@ -73,6 +76,7 @@ class BundestagMineClient(APIClient):
         result = self.safe_get(f"GetAgendaItemsOfProtocol/{protocol_id}")
         items = result.get("agendaItems")
         if items is None:
+            self.logger.debug(f"No agenda items found for {protocol_id}")
             return []
         if not isinstance(items, list):
             raise ResponseParseError(
@@ -110,6 +114,7 @@ class BundestagMineClient(APIClient):
         result = self.safe_get(f"GetSpeechesOfAgendaItem/{encoded}")
         speeches = result.get("speeches")
         if speeches is None:
+            self.logger.debug(f"No speeches found for {raw}")
             return []
         if not isinstance(speeches, list):
             raise ResponseParseError(
@@ -125,6 +130,7 @@ class BundestagMineClient(APIClient):
                 speaker_data = self.get_speaker_data(speaker_id)
                 speech["speaker"] = speaker_data
             except (APIClientError, ResponseParseError):
+                self.logger.debug(f"Failed to get speaker data for {speaker_id}")
                 continue
 
         return speeches
@@ -139,6 +145,7 @@ class BundestagMineClient(APIClient):
         try:
             protocols = self.get_protocols()
         except (APIClientError, ResponseParseError):
+            self.logger.debug("Failed to get protocols")
             return []
 
         all_speeches: List[Dict[str, Any]] = []
@@ -148,6 +155,7 @@ class BundestagMineClient(APIClient):
             wp = prot.get("legislaturePeriod")
             num = prot.get("number")
             if not pid or wp is None or num is None:
+                self.logger.debug(f"Skipping protocol with missing data: {prot}. ")
                 continue  # skip incomplete entries
 
             # normalize types
@@ -161,16 +169,23 @@ class BundestagMineClient(APIClient):
             try:
                 items = self.get_agenda_items(pid)
             except (APIClientError, ResponseParseError):
+                self.logger.debug(f"Failed to get agenda items for protocol {pid}")
                 continue
 
             for item in items:
                 ain = item.get("agendaItemNumber")
                 if ain is None:
+                    self.logger.debug(
+                        f"Skipping agenda item with missing number: {item}. "
+                    )
                     continue
                 try:
                     speeches = self.get_speeches(wp_int, num_int, str(ain))
                     all_speeches.extend(speeches)
                 except (APIClientError, ResponseParseError):
+                    self.logger.debug(
+                        f"Failed to get speeches for protocol {pid}, agenda item {ain}"
+                    )
                     continue
 
         return all_speeches
