@@ -54,7 +54,7 @@ class BundestagMineDatasourceReader(BaseReader):
         speech_iterator = self.client.fetch_all_speeches()
         yield_counter = 0
 
-        for speech in speeches:
+        for speech in speech_iterator:
             speech_limit = (
                 self.export_limit - yield_counter
                 if self.export_limit is not None
