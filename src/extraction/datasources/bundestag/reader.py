@@ -3,11 +3,13 @@ from typing import AsyncIterator
 
 from core import Factory
 from core.logger import LoggerConfiguration
-from extraction.datasources.bundestag.client import BundestagMineClient
+from extraction.datasources.bundestag.client import (
+    BundestagMineClient,
+    BundestagMineClientFactory,
+)
 from extraction.datasources.bundestag.configuration import (
     BundestagMineDatasourceConfiguration,
 )
-from extraction.datasources.bundestag.client import BundestagMineClientFactory
 from extraction.datasources.core.reader import BaseReader
 
 

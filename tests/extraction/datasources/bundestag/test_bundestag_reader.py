@@ -65,17 +65,23 @@ class Assertions:
         self.client.fetch_all_speeches.assert_called_once()
         return self
 
-    def assert_speeches_count(self, speeches: List[Dict[str, Any]]) -> "Assertions":
+    def assert_speeches_count(
+        self, speeches: List[Dict[str, Any]]
+    ) -> "Assertions":
         expected_count = min(
             len(self.fixtures.speeches),
-            self.fixtures.export_limit
-            if self.fixtures.export_limit is not None
-            else float("inf"),
+            (
+                self.fixtures.export_limit
+                if self.fixtures.export_limit is not None
+                else float("inf")
+            ),
         )
         assert len(speeches) == expected_count
         return self
 
-    def assert_speeches_content(self, speeches: List[Dict[str, Any]]) -> "Assertions":
+    def assert_speeches_content(
+        self, speeches: List[Dict[str, Any]]
+    ) -> "Assertions":
         expected_speeches = self.fixtures.speeches[: self.fixtures.export_limit]
         for expected, actual in zip(expected_speeches, speeches):
             assert actual == expected
