@@ -6,7 +6,10 @@ from langfuse.llama_index.llama_index import LlamaIndexCallbackHandler
 from llama_index.core.base.llms.types import ChatMessage
 from llama_index.core.callbacks import CallbackManager, trace_method
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
-from llama_index.core.chat_engine.types import StreamingAgentChatResponse
+from llama_index.core.chat_engine.types import (
+    AgentChatResponse,
+    StreamingAgentChatResponse,
+)
 from llama_index.core.indices.base_retriever import BaseRetriever
 from llama_index.core.llms.llm import LLM
 from llama_index.core.memory import BaseMemory, ChatMemoryBuffer
@@ -101,6 +104,54 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         self.chainlit_tag_format = chainlit_tag_format
 
     @trace_method("chat")
+    def chat(
+        self,
+        message: str,
+        chat_history: Optional[List[ChatMessage]] = None,
+        chainlit_message_id: str = None,
+        source_process: SourceProcess = SourceProcess.CHAT_COMPLETION,
+    ) -> AgentChatResponse:
+        """Process a query using RAG pipeline with Langfuse tracing.
+
+        Args:
+            message: Raw query string to process
+            chat_history: Optional chat history for context
+            chainlit_message_id: Optional ID for linking to Chainlit message in UI
+            source_process: Context identifier indicating query's origin source
+
+        Returns:
+            AgentChatResponse: Generated response from RAG pipeline with metadata
+        """
+        self._set_chainlit_message_id(
+            message_id=chainlit_message_id, source_process=source_process
+        )
+        return super().chat(message=message, chat_history=chat_history)
+
+    @trace_method("chat")
+    def achat(
+        self,
+        message: str,
+        chat_history: Optional[List[ChatMessage]] = None,
+        chainlit_message_id: str = None,
+        source_process: SourceProcess = SourceProcess.CHAT_COMPLETION,
+    ) -> AgentChatResponse:
+        """Process a query using RAG pipeline with Langfuse tracing.
+
+        Args:
+            message: Raw query string to process
+            chat_history: Optional chat history for context
+            chainlit_message_id: Optional ID for linking to Chainlit message in UI
+            source_process: Context identifier indicating query's origin source
+
+        Returns:
+            AgentChatResponse: Generated response from RAG pipeline with metadata
+        """
+        self._set_chainlit_message_id(
+            message_id=chainlit_message_id, source_process=source_process
+        )
+        return super().achat(message=message, chat_history=chat_history)
+
+    @trace_method("chat")
     def stream_chat(
         self,
         message: str,
@@ -117,7 +168,7 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
             source_process: Context identifier indicating query's origin source
 
         Returns:
-            AgentChatResponse: Generated response from RAG pipeline with metadata
+            StreamingAgentChatResponse: Generated response from RAG pipeline with metadata
         """
         self._set_chainlit_message_id(
             message_id=chainlit_message_id, source_process=source_process
@@ -141,7 +192,7 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
             source_process: Context identifier indicating query's origin source
 
         Returns:
-            AgentChatResponse: Generated response from RAG pipeline with metadata
+            StreamingAgentChatResponse: Generated response from RAG pipeline with metadata
         """
         self._set_chainlit_message_id(
             message_id=chainlit_message_id, source_process=source_process

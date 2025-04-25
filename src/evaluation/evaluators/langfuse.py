@@ -1,9 +1,10 @@
 from math import isnan
 from typing import Type
 
-from llama_index.core.query_engine import CustomQueryEngine
+from langfuse.model import DatasetStatus
 
 from augmentation.components.chat_engines.langfuse.chat_engine import (
+    LangfuseChatEngine,
     SourceProcess,
 )
 from augmentation.components.chat_engines.registry import ChatEngineRegistry
@@ -27,7 +28,7 @@ class LangfuseEvaluator:
 
     def __init__(
         self,
-        query_engine: CustomQueryEngine,
+        chat_engine: LangfuseChatEngine,
         langfuse_dataset_service: LangfuseDatasetService,
         ragas_evaluator: RagasEvaluator,
         run_metadata: dict,
@@ -35,12 +36,12 @@ class LangfuseEvaluator:
         """Initialize the Langfuse evaluator with required components.
 
         Args:
-            query_engine: The chat engine that will generate responses
+            chat_engine: The chat engine that will generate responses
             langfuse_dataset_service: Service to retrieve evaluation datasets
             ragas_evaluator: Component to calculate quality metrics
             run_metadata: Dictionary containing metadata about the evaluation run
         """
-        self.query_engine = query_engine
+        self.chat_engine = chat_engine
         self.ragas_evaluator = ragas_evaluator
         self.langfuse_dataset_service = langfuse_dataset_service
         self.run_name = run_metadata["build_name"]
@@ -65,15 +66,19 @@ class LangfuseEvaluator:
 
         for item in langfuse_dataset.items:
 
-            response = self.query_engine.query(
-                str_or_query_bundle=item.input["query_str"],
+            if item.status == DatasetStatus.ARCHIVED:
+                continue
+
+            response = self.chat_engine.chat(
+                message=item.input["query_str"],
+                chat_history=[],
                 chainlit_message_id=None,
                 source_process=SourceProcess.DEPLOYMENT_EVALUATION,
-            ).get_response()
+            )
 
             scores = self.ragas_evaluator.evaluate(response=response, item=item)
 
-            trace = self.query_engine.get_current_langfuse_trace()
+            trace = self.chat_engine.get_current_langfuse_trace()
             trace.update(output=response.response)
             item.link(
                 trace_or_observation=trace,
@@ -126,7 +131,7 @@ class LangfuseEvaluatorFactory(Factory):
         )
         ragas_evaluator = RagasEvaluatorFactory.create(configuration.evaluation)
         return LangfuseEvaluator(
-            query_engine=chat_engine,
+            chat_engine=chat_engine,
             langfuse_dataset_service=langfuse_dataset_service,
             ragas_evaluator=ragas_evaluator,
             run_metadata={
