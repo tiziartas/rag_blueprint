@@ -168,7 +168,9 @@ class Assertions:
         expected_ids = [s["id"] for s in expected_speeches]
         assert set(speech_ids) == set(expected_ids)
 
-    def assert_all_speeches(self, all_speeches):
+    def assert_all_speeches(self, all_speeches_iterator):
+        all_speeches = list(all_speeches_iterator)
+
         expected_count = 0
         for speech_group in self.fixtures.speeches_data.values():
             expected_count += len(speech_group["speeches"])
@@ -252,16 +254,19 @@ class TestBundestagMineClient:
         manager = Manager(Arrangements(fixtures).mock_safe_get())
         client = manager.get_client()
 
-        all_speeches = client.fetch_all_speeches()
+        # Act
+        all_speeches_iterator = client.fetch_all_speeches()
 
-        manager.assertions.assert_all_speeches(all_speeches)
+        # Assert
+        manager.assertions.assert_all_speeches(all_speeches_iterator)
 
     def test_fetch_all_speeches_with_failing_protocols(self):
         manager = Manager(Arrangements(Fixtures()).with_failing_protocols())
         client = manager.get_client()
 
-        all_speeches = client.fetch_all_speeches()
+        all_speeches_iterator = client.fetch_all_speeches()
 
+        all_speeches = list(all_speeches_iterator)
         assert all_speeches == []
 
     def test_fetch_all_speeches_with_failing_agenda_items(self):
@@ -271,8 +276,9 @@ class TestBundestagMineClient:
         )
         client = manager.get_client()
 
-        all_speeches = client.fetch_all_speeches()
+        all_speeches_iterator = client.fetch_all_speeches()
 
+        all_speeches = list(all_speeches_iterator)
         assert all_speeches == []
 
     def test_fetch_all_speeches_with_failing_speeches(self):
@@ -282,6 +288,7 @@ class TestBundestagMineClient:
         )
         client = manager.get_client()
 
-        all_speeches = client.fetch_all_speeches()
+        all_speeches_iterator = client.fetch_all_speeches()
 
+        all_speeches = list(all_speeches_iterator)
         assert all_speeches == []
