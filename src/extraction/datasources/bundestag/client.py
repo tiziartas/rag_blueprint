@@ -1,8 +1,13 @@
+from typing import Any, Dict, List, Type
 from urllib.parse import quote
-from typing import Any, Dict, List
 
 from apiclient import APIClient, retry_request
 from apiclient.exceptions import APIClientError, ResponseParseError
+
+from core import SingletonFactory
+from extraction.datasources.bundestag.configuration import (
+    BundestagMineDatasourceConfiguration,
+)
 
 
 # TODO: eventually refactor this to use async, HTTPX and tenacity
@@ -52,7 +57,9 @@ class BundestagMineClient(APIClient):
         """
         result = self.safe_get("GetProtocols")
         if not isinstance(result, list):
-            raise ResponseParseError(f"Expected list of protocols, got: {result}")
+            raise ResponseParseError(
+                f"Expected list of protocols, got: {result}"
+            )
         return result
 
     def get_agenda_items(self, protocol_id: str) -> List[Dict[str, Any]]:
@@ -84,7 +91,10 @@ class BundestagMineClient(APIClient):
 
     @retry_request
     def get_speeches(
-        self, legislature_period: int, protocol_number: int, agenda_item_number: str
+        self,
+        legislature_period: int,
+        protocol_number: int,
+        agenda_item_number: str,
     ) -> List[Dict[str, Any]]:
         """
         Fetches speeches for a specific agenda item within a protocol.
@@ -130,7 +140,7 @@ class BundestagMineClient(APIClient):
         """
         try:
             protocols = self.get_protocols()
-        except (APIClientError, ResponseParseError) as e:
+        except (APIClientError, ResponseParseError):
             return []
 
         all_speeches: List[Dict[str, Any]] = []
@@ -166,3 +176,29 @@ class BundestagMineClient(APIClient):
                     continue
 
         return all_speeches
+
+
+class BundestagMineClientFactory(SingletonFactory):
+    """
+    Factory for creating and managing Bundestag client instances.
+
+    This factory ensures only one Bundestag client is created per configuration,
+    following the singleton pattern provided by the parent SingletonFactory class.
+    """
+
+    _configuration_class: Type = BundestagMineDatasourceConfiguration
+
+    @classmethod
+    def _create_instance(
+        cls, configuration: BundestagMineDatasourceConfiguration
+    ) -> BundestagMineClient:
+        """
+        Creates a new BundestagMine client instance using the provided configuration.
+
+        Args:
+            configuration: Configuration object containing BundestagMine details
+
+        Returns:
+            A configured BundestagMine client instance ready for API interactions.
+        """
+        return BundestagMineClient()
