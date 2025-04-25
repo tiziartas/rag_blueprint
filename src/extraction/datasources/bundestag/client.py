@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, Iterator, List, Type
 from urllib.parse import quote
 
 from apiclient import APIClient, retry_request
@@ -139,7 +139,7 @@ class BundestagMineClient(APIClient):
 
         return speeches
 
-    def fetch_all_speeches(self) -> List[Dict[str, Any]]:
+    def fetch_all_speeches(self) -> Iterator[Dict[str, Any]]:
         """
         Fetches all speeches by iterating through protocols and their agenda items.
 
@@ -151,8 +151,6 @@ class BundestagMineClient(APIClient):
         except (APIClientError, ResponseParseError):
             self.logger.debug("Failed to get protocols")
             return []
-
-        all_speeches: List[Dict[str, Any]] = []
 
         for prot in protocols:
             pid = prot.get("id")
@@ -189,14 +187,13 @@ class BundestagMineClient(APIClient):
                     continue
                 try:
                     speeches = self.get_speeches(wp_int, num_int, str(ain))
-                    all_speeches.extend(speeches)
+                    for speech in speeches:
+                        yield speech
                 except (APIClientError, ResponseParseError):
                     self.logger.debug(
                         f"Failed to get speeches for protocol {pid}, agenda item {ain}"
                     )
                     continue
-
-        return all_speeches
 
 
 class BundestagMineClientFactory(SingletonFactory):
