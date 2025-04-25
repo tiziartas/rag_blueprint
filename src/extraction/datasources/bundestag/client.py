@@ -60,7 +60,9 @@ class BundestagMineClient(APIClient):
         """
         result = self.safe_get("GetProtocols")
         if not isinstance(result, list):
-            raise ResponseParseError(f"Expected list of protocols, got: {result}")
+            raise ResponseParseError(
+                f"Expected list of protocols, got: {result}"
+            )
         return result
 
     def get_agenda_items(self, protocol_id: str) -> List[Dict[str, Any]]:
@@ -130,7 +132,9 @@ class BundestagMineClient(APIClient):
                 speaker_data = self.get_speaker_data(speaker_id)
                 speech["speaker"] = speaker_data
             except (APIClientError, ResponseParseError):
-                self.logger.debug(f"Failed to get speaker data for {speaker_id}")
+                self.logger.debug(
+                    f"Failed to get speaker data for {speaker_id}"
+                )
                 continue
 
         return speeches
@@ -155,7 +159,9 @@ class BundestagMineClient(APIClient):
             wp = prot.get("legislaturePeriod")
             num = prot.get("number")
             if not pid or wp is None or num is None:
-                self.logger.debug(f"Skipping protocol with missing data: {prot}. ")
+                self.logger.debug(
+                    f"Skipping protocol with missing data: {prot}. "
+                )
                 continue  # skip incomplete entries
 
             # normalize types
@@ -169,7 +175,9 @@ class BundestagMineClient(APIClient):
             try:
                 items = self.get_agenda_items(pid)
             except (APIClientError, ResponseParseError):
-                self.logger.debug(f"Failed to get agenda items for protocol {pid}")
+                self.logger.debug(
+                    f"Failed to get agenda items for protocol {pid}"
+                )
                 continue
 
             for item in items:
