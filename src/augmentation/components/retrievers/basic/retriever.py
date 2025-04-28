@@ -57,7 +57,7 @@ class BasicRetrieverFactory(Factory):
         )
 
         retriever_configuration = (
-            configuration.augmentation.query_engine.retriever
+            configuration.augmentation.chat_engine.retriever
         )
         return VectorIndexRetriever(
             index=index,

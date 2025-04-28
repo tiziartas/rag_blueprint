@@ -26,21 +26,18 @@
         }
     },
     "augmentation": {
-        "query_engine": {
+        "chat_engine": {
             "name": "langfuse",
             "retriever": {
                 "name": "basic",
                 "similarity_top_k": 5
             },
-            "synthesizer": {
-                "name": "tree",
-                "llm": {
-                    "provider": "openai",
-                    "name": "gpt-4o-mini",
-                    "max_tokens": 1024,
-                    "max_retries": 3,
-                    "context_window": 16384
-                }
+            "llm": {
+                "provider": "openai",
+                "name": "gpt-4o-mini",
+                "max_tokens": 1024,
+                "max_retries": 3,
+                "context_window": 16384
             },
             "postprocessors": []
         },

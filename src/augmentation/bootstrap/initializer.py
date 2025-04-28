@@ -1,6 +1,12 @@
 import logging
 from typing import Type
 
+from llama_index.core.chat_engine.condense_plus_context import (
+    DEFAULT_CONDENSE_PROMPT_TEMPLATE,
+    DEFAULT_CONTEXT_PROMPT_TEMPLATE,
+    DEFAULT_CONTEXT_REFINE_PROMPT_TEMPLATE,
+)
+
 from augmentation.bootstrap.configuration.configuration import (
     AugmentationConfiguration,
 )
@@ -18,8 +24,8 @@ class AugmentationPackageLoader(EmbeddingPackageLoader):
     """Package loader for augmentation components.
 
     Extends the EmbeddingPackageLoader to load additional packages required
-    for the augmentation process, including LLMs, synthesizers, retrievers,
-    postprocessors, and query engines.
+    for the augmentation process, including LLMs, retrievers,
+    postprocessors, and chat engines.
     """
 
     def __init__(
@@ -43,10 +49,9 @@ class AugmentationPackageLoader(EmbeddingPackageLoader):
         self._load_packages(
             [
                 "src.augmentation.components.llms",
-                "src.augmentation.components.synthesizers",
                 "src.augmentation.components.retrievers",
                 "src.augmentation.components.postprocessors",
-                "src.augmentation.components.query_engines",
+                "src.augmentation.components.chat_engines",
             ]
         )
 
@@ -86,22 +91,29 @@ class AugmentationInitializer(EmbeddingInitializer):
 
     def _initialize_default_prompt(self) -> None:
         """
-        Initialize the default prompt for the augmentation process managed by Langfuse.
-        This method creates a default prompt template if it does not already exist.
+        Initialize the default prompt templates for the augmentation process managed by Langfuse.
         """
         configuration = self.get_configuration()
         langfuse_prompt_service = LangfusePromptServiceFactory.create(
             configuration=configuration.augmentation.langfuse
         )
+
         langfuse_prompt_service.create_prompt_if_not_exists(
-            prompt_name="default",
-            prompt_template=(
-                "Context information from multiple sources is below.\n"
-                "---------------------\n"
-                "{context_str}\n"
-                "---------------------\n"
-                "Based on the above context answer to the below query with a lot of enthusiasim and humoristic sense\n"
-                "Query: {query_str}\n"
-                "Answer: "
-            ),
+            prompt_name="default_condense_prompt",
+            prompt_template=DEFAULT_CONDENSE_PROMPT_TEMPLATE,
+        )
+
+        langfuse_prompt_service.create_prompt_if_not_exists(
+            prompt_name="default_context_prompt",
+            prompt_template=DEFAULT_CONTEXT_PROMPT_TEMPLATE,
+        )
+
+        langfuse_prompt_service.create_prompt_if_not_exists(
+            prompt_name="default_context_refine_prompt",
+            prompt_template=DEFAULT_CONTEXT_REFINE_PROMPT_TEMPLATE,
+        )
+
+        langfuse_prompt_service.create_prompt_if_not_exists(
+            prompt_name="default_system_prompt",
+            prompt_template="",
         )

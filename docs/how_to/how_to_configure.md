@@ -83,16 +83,13 @@ Minimal setup requires the use of LLMs in augmentation and evaluation processes.
 ```json
 {
     "augmentation": {
-        "query_engine": {
-            "synthesizer": {
-                "name": "tree",
-                "llm": {
-                    "provider": "openai",
-                    "name": "gpt-4o-mini",
-                    "max_tokens": 1024,
-                    "max_retries": 3,
-                    "context_window": 16384
-                }
+        "chat_engine": {
+            "llm": {
+                "provider": "openai",
+                "name": "gpt-4o-mini",
+                "max_tokens": 1024,
+                "max_retries": 3,
+                "context_window": 16384
             }
         }
     },
@@ -116,16 +113,14 @@ In the above case, augmentation and evaluation processes use the same LLM, which
 {
     "pipeline": {
         "augmentation": {
-            "query_engine": {
-                "synthesizer": {
-                    "name": "tree",
-                    "llm": {
-                        "provider": "openai",
-                        "name": "gpt-4o-mini",
-                        "max_tokens": 1024,
-                        "max_retries": 3,
-                        "context_window": 16384
-                    }
+            "chat_engine": {
+                "llm": {
+                    "provider": "openai",
+                    "name": "gpt-4o-mini",
+                    "max_tokens": 1024,
+                    "max_retries": 3,
+                    "context_window": 16384
+                }
                 }
             }
         },
@@ -266,6 +261,27 @@ Configuration contains the entries related to Langfuse and Chainlit:
 
 Field `chailit.port` defines on which port chat UI should be run. Fields in `langfuse` define connection details to Langfuse server and `langfuse.database` details of its database. Corresponding secrets for Langfuse have to be added to environment's secrets file.
 
+## Prompt Templates Configuration
+
+For prompts management system uses [Langfuse Prompt](https://langfuse.com/docs/prompts/get-started) service. By default four prompt templates are created in Langfuse Prompts service - `default_system_prompt`, `default_context_refine_prompt`, `default_context_prompt`, `default_condense_prompt`. To find out more about these templates visit [Llamaindex guide](https://docs.llamaindex.ai/en/stable/examples/chat_engine/chat_engine_condense_plus_context/).
+
+Prompts are used during the augmentation process, which affects the final answers of the system. They can be adjusted via Langfuse Prompts UI. If you want to provide and use templates under different names, you need to add them to Langfuse Prompts and change the configuration as follows:
+
+```json
+{
+  "augmentation": {
+    "chat_engine": {
+      "prompt_templates": {
+        "condense_prompt_name": "new_condense_prompt",
+        "context_prompt_name": "new_context_prompt",
+        "context_refine_prompt_name": "new_context_refine_prompt",
+        "system_prompt_name": "new_system_prompt"
+      }
+    }
+  }
+}
+```
+
 ## Upcoming Docs
 
-Docs about configurable syntheziers, retrievers, postprocessors and others are in progress..
+Docs about configurable retrievers, postprocessors and others are in progress..

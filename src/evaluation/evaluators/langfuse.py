@@ -1,12 +1,13 @@
 from math import isnan
 from typing import Type
 
-from llama_index.core.query_engine import CustomQueryEngine
+from langfuse.model import DatasetStatus
 
-from augmentation.components.query_engines.langfuse.query_engine import (
+from augmentation.components.chat_engines.langfuse.chat_engine import (
+    LangfuseChatEngine,
     SourceProcess,
 )
-from augmentation.components.query_engines.registry import QueryEngineRegistry
+from augmentation.components.chat_engines.registry import ChatEngineRegistry
 from augmentation.langfuse.dataset_service import (
     LangfuseDatasetService,
     LangfuseDatasetServiceFactory,
@@ -21,13 +22,13 @@ from evaluation.evaluators.ragas import RagasEvaluator, RagasEvaluatorFactory
 class LangfuseEvaluator:
     """Evaluator that tracks RAG performance metrics in Langfuse.
 
-    Integrates query engine execution with RAGAS evaluation and
+    Integrates chat engine execution with RAGAS evaluation and
     publishes quality metrics to Langfuse for monitoring and analysis.
     """
 
     def __init__(
         self,
-        query_engine: CustomQueryEngine,
+        chat_engine: LangfuseChatEngine,
         langfuse_dataset_service: LangfuseDatasetService,
         ragas_evaluator: RagasEvaluator,
         run_metadata: dict,
@@ -35,12 +36,12 @@ class LangfuseEvaluator:
         """Initialize the Langfuse evaluator with required components.
 
         Args:
-            query_engine: The query engine that will generate responses
+            chat_engine: The chat engine that will generate responses
             langfuse_dataset_service: Service to retrieve evaluation datasets
             ragas_evaluator: Component to calculate quality metrics
             run_metadata: Dictionary containing metadata about the evaluation run
         """
-        self.query_engine = query_engine
+        self.chat_engine = chat_engine
         self.ragas_evaluator = ragas_evaluator
         self.langfuse_dataset_service = langfuse_dataset_service
         self.run_name = run_metadata["build_name"]
@@ -49,7 +50,7 @@ class LangfuseEvaluator:
     def evaluate(self, dataset_name: str) -> None:
         """Run evaluation on a dataset and record results in Langfuse.
 
-        Processes each item in the dataset, generates responses using the query engine,
+        Processes each item in the dataset, generates responses using the chat engine,
         calculates evaluation metrics, and uploads all results to Langfuse for monitoring.
 
         Args:
@@ -65,15 +66,19 @@ class LangfuseEvaluator:
 
         for item in langfuse_dataset.items:
 
-            response = self.query_engine.query(
-                str_or_query_bundle=item.input["query_str"],
+            if item.status == DatasetStatus.ARCHIVED:
+                continue
+
+            response = self.chat_engine.chat(
+                message=item.input["query_str"],
+                chat_history=[],
                 chainlit_message_id=None,
                 source_process=SourceProcess.DEPLOYMENT_EVALUATION,
-            ).get_response()
+            )
 
             scores = self.ragas_evaluator.evaluate(response=response, item=item)
 
-            trace = self.query_engine.get_current_langfuse_trace()
+            trace = self.chat_engine.get_current_langfuse_trace()
             trace.update(output=response.response)
             item.link(
                 trace_or_observation=trace,
@@ -113,25 +118,25 @@ class LangfuseEvaluatorFactory(Factory):
 
         Args:
             configuration: Complete evaluation configuration containing
-                           settings for the query engine, datasets, and metrics
+                           settings for the chat engine, datasets, and metrics
 
         Returns:
             A fully configured LangfuseEvaluator instance ready for evaluation
         """
-        query_engine = QueryEngineRegistry.get(
-            configuration.augmentation.query_engine.name
+        chat_engine = ChatEngineRegistry.get(
+            configuration.augmentation.chat_engine.name
         ).create(configuration)
         langfuse_dataset_service = LangfuseDatasetServiceFactory.create(
             configuration.augmentation.langfuse
         )
         ragas_evaluator = RagasEvaluatorFactory.create(configuration.evaluation)
         return LangfuseEvaluator(
-            query_engine=query_engine,
+            chat_engine=chat_engine,
             langfuse_dataset_service=langfuse_dataset_service,
             ragas_evaluator=ragas_evaluator,
             run_metadata={
                 "build_name": configuration.metadata.build_name,
-                "llm_configuration": configuration.augmentation.query_engine.synthesizer.llm.name,
+                "llm_configuration": configuration.augmentation.chat_engine.llm.name,
                 "judge_llm_configuration": configuration.evaluation.judge_llm.name,
             },
         )

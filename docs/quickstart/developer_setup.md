@@ -95,7 +95,7 @@ Run the augmentation stage script:
 python src/augment.py --env local --on-prem-config
 ```
 
-This initializes the RAG system's query engine and the Chainlit application, leveraging the embeddings generated in the previous step.
+This initializes the RAG system's chat engine and the Chainlit application, leveraging the embeddings generated in the previous step.
 
 #### Evaluation Stage
 
