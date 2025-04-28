@@ -107,7 +107,7 @@ class BaseConfigurationWithSecrets(BaseConfiguration):
         Raises:
             ValueError: If secrets are not found or cannot be loaded.
         """
-        secrets_class = self.model_fields["secrets"].annotation
+        secrets_class = type(self).model_fields["secrets"].annotation
         secrets = secrets_class(_env_file=secrets_file)
         if secrets is None:
             raise ValueError(f"Secrets for {self.name} not found.")
