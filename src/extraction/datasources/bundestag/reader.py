@@ -55,15 +55,7 @@ class BundestagMineDatasourceReader(BaseReader):
         )
         speech_iterator = self.client.fetch_all_speeches()
         yield_counter = 0
-
-        if self.export_limit is not None:
-            pbar = tqdm(
-                total=self.export_limit,
-                desc="[BundestagMine] Fetching speeches",
-                unit="speech",
-            )
-        else:
-            pbar = tqdm(desc="[BundestagMine] Fetching speeches", unit="speech")
+        pbar = self._get_pbar()
 
         try:
             for speech in speech_iterator:
@@ -80,6 +72,21 @@ class BundestagMineDatasourceReader(BaseReader):
                 yield speech
         finally:
             pbar.close()
+
+    def _get_pbar(self) -> tqdm:
+        """Get the progress bar for tracking speech fetching progress.
+
+        Returns:
+            tqdm: Progress bar instance for tracking speech fetching
+        """
+        if self.export_limit is not None:
+            return tqdm(
+                total=self.export_limit,
+                desc="[BundestagMine] Fetching speeches",
+                unit="speech",
+            )
+        else:
+            return tqdm(desc="[BundestagMine] Fetching speeches", unit="speech")
 
 
 class BundestagMineDatasourceReaderFactory(Factory):
