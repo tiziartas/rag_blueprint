@@ -22,12 +22,13 @@ RAG__LLMS__OPENAI__API_KEY=...
 RAG__LANGFUSE__DATABASE__USER=user
 RAG__LANGFUSE__DATABASE__PASSWORD=password
 
-RAG__LANGFUSE__SECRET_KEY=...
-RAG__LANGFUSE__PUBLIC_KEY=...
+
+RAG__LANGFUSE__SECRET_KEY=required_placeholder
+RAG__LANGFUSE__PUBLIC_KEY=required_placeholder
 ```
 
 - `RAG__LLMS__OPENAI__API_KEY`: Required for connecting to [OpenAI](https://openai.com/) LLM.
-- **Langfuse Keys**: `RAG__LANGFUSE__SECRET_KEY` and `RAG__LANGFUSE__PUBLIC_KEY` are generated during initialization and will need to be updated later.
+- **Langfuse Keys**: `RAG__LANGFUSE__SECRET_KEY` and `RAG__LANGFUSE__PUBLIC_KEY` are generated after initialization and will need to be updated later.
 
 ## Initialization
 
