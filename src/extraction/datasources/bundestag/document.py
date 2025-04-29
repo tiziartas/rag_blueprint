@@ -15,6 +15,8 @@ class BundestagMineDocument(BaseDocument):
         "last_edited_time",
         "speaker_party",
         "speaker",
+        "protocol_number",
+        "legislature_period",
     ]
 
     included_llm_metadata_keys: List[str] = [
@@ -23,4 +25,6 @@ class BundestagMineDocument(BaseDocument):
         "last_edited_time",
         "speaker_party",
         "speaker",
+        "protocol_number",
+        "legislature_period",
     ]
