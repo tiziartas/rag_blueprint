@@ -156,6 +156,7 @@ class BundestagMineClient(APIClient):
             pid = prot.get("id")
             wp = prot.get("legislaturePeriod")
             num = prot.get("number")
+            date = prot.get("date")
             if not pid or wp is None or num is None:
                 self.logger.debug(
                     f"Skipping protocol with missing data: {prot}. "
@@ -188,6 +189,7 @@ class BundestagMineClient(APIClient):
                 try:
                     speeches = self.get_speeches(wp_int, num_int, str(ain))
                     for speech in speeches:
+                        speech["date"] = date
                         yield speech
                 except (APIClientError, ResponseParseError):
                     self.logger.debug(
