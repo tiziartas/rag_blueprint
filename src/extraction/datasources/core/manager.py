@@ -96,10 +96,15 @@ class BasicDatasourceManager(BaseDatasourceManager, Generic[DocType]):
         objects = self.reader.read_all_async()
         async for object in objects:
             md_document = self.parser.parse(object)
+            if not md_document:
+                continue
+
             cleaned_document = self.cleaner.clean(md_document)
-            if cleaned_document:
-                for split_document in self.splitter.split(cleaned_document):
-                    yield split_document
+            if not cleaned_document:
+                continue
+
+            for split_document in self.splitter.split(cleaned_document):
+                yield split_document
 
     def incremental_sync(self):
         """Process only new or changed content since the last sync.
