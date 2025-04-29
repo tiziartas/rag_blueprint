@@ -33,6 +33,10 @@ class Fixtures:
         }
         return self
 
+    def with_invalid_response(self) -> "Fixtures":
+        self.sample_response = {}  # Empty dictionary missing required fields
+        return self
+
     def with_configuration(self) -> "Fixtures":
         self.configuration = Mock(spec=BundestagMineDatasourceConfiguration)
         return self
@@ -51,30 +55,53 @@ class Assertions:
         self.parser = arrangements.parser
 
     def assert_metadata_extraction(self, metadata: dict) -> "Assertions":
+        sample = self.fixtures.sample_response
         assert metadata["datasource"] == "bundestag"
         assert metadata["language"] == "de"
         assert (
-            metadata["url"] == "https://dserver.bundestag.de/btp/19/19123.pdf"
+            metadata["url"]
+            == f"https://dserver.bundestag.de/btp/{sample['legislaturePeriod']}/{sample['legislaturePeriod']}{sample['protocolNumber']}.pdf"
         )
-        assert metadata["title"] == "Protocol/Legislature 123/19"
+        assert (
+            metadata["title"]
+            == f"Protocol/Legislature/AgendaItem {sample['protocolNumber']}/{sample['legislaturePeriod']}/{sample['agendaItemNumber']}"
+        )
         assert metadata["format"] == "md"
-        assert metadata["created_time"] == "2023-01-01"
-        assert metadata["last_edited_time"] == "2023-01-01"
-        assert metadata["speaker_party"] == "Test Party"
-        assert metadata["speaker"] == "John Doe"
-        assert metadata["agenda_item_number"] == "42"
-        assert metadata["protocol_number"] == "123"
-        assert metadata["legislature_period"] == "19"
+        assert metadata["created_time"] == sample["date"]
+        assert metadata["last_edited_time"] == sample["date"]
+        assert metadata["speaker_party"] == sample["speaker"]["party"]
+        assert (
+            metadata["speaker"]
+            == f"{sample['speaker']['firstName']} {sample['speaker']['lastName']}"
+        )
+        assert metadata["agenda_item_number"] == sample["agendaItemNumber"]
+        assert metadata["protocol_number"] == sample["protocolNumber"]
+        assert metadata["legislature_period"] == sample["legislaturePeriod"]
+        return self
+
+    def assert_none_metadata(self, metadata) -> "Assertions":
+        assert metadata is None
         return self
 
     def assert_document_parsing(
         self, document: BundestagMineDocument
     ) -> "Assertions":
+        sample = self.fixtures.sample_response
         assert isinstance(document, BundestagMineDocument)
-        assert document.text == "This is a test markdown content."
+        assert document.text == sample["text"]
         assert document.metadata["datasource"] == "bundestag"
-        assert document.metadata["speaker"] == "John Doe"
-        assert document.metadata["title"] == "Protocol/Legislature 123/19"
+        assert (
+            document.metadata["speaker"]
+            == f"{sample['speaker']['firstName']} {sample['speaker']['lastName']}"
+        )
+        assert (
+            document.metadata["title"]
+            == f"Protocol/Legislature/AgendaItem {sample['protocolNumber']}/{sample['legislaturePeriod']}/{sample['agendaItemNumber']}"
+        )
+        return self
+
+    def assert_none_document(self, document) -> "Assertions":
+        assert document is None
         return self
 
 
@@ -113,3 +140,27 @@ class TestBundestagMineDatasourceParser:
 
         # Assert
         manager.assertions.assert_document_parsing(document)
+
+    def test_extract_metadata_with_invalid_input(self):
+        """Test the _extract_metadata method with invalid input."""
+        # Arrange
+        manager = Manager(Arrangements(Fixtures().with_invalid_response()))
+        parser = manager.get_parser()
+
+        # Act
+        metadata = parser._extract_metadata(manager.fixtures.sample_response)
+
+        # Assert
+        manager.assertions.assert_none_metadata(metadata)
+
+    def test_parse_with_invalid_input(self):
+        """Test the parse method with invalid input."""
+        # Arrange
+        manager = Manager(Arrangements(Fixtures().with_invalid_response()))
+        parser = manager.get_parser()
+
+        # Act
+        document = parser.parse(manager.fixtures.sample_response)
+
+        # Assert
+        manager.assertions.assert_none_document(document)
