@@ -28,17 +28,17 @@ class BundestagMineDatasourceManagerFactory(Factory):
     def _create_instance(
         cls, configuration: BundestagMineDatasourceConfiguration
     ) -> BasicDatasourceManager:
-        """Create an instance of the PDF datasource manager.
+        """Create an instance of the BundestagMine datasource manager.
 
         This method constructs a BasicDatasourceManager by creating the appropriate
         reader and parser based on the provided configuration.
 
         Args:
-            configuration: Configuration specifying how to set up the PDF datasource
+            configuration: Configuration specifying how to set up the BundestagMine datasource
                           manager, reader, and parser.
 
         Returns:
-            A configured BasicDatasourceManager instance for handling PDF documents.
+            A configured BasicDatasourceManager instance for handling BundestagMine documents.
         """
         reader = BundestagMineDatasourceReaderFactory.create(configuration)
         parser = BundestagMineDatasourceParserFactory.create(configuration)
