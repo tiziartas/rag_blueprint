@@ -48,3 +48,10 @@ jobs:
           git pull
           git rebase origin/feld-m-main
           git push -f origin feld-m-ragsd-main
+
+      - name: Update FELD M RAG Bundestag Branch
+        run: |
+          git checkout feld-m-ragbt-main
+          git pull
+          git rebase origin/feld-m-main
+          git push -f origin feld-m-ragbt-main
