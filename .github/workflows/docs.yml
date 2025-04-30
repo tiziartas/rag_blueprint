@@ -28,7 +28,19 @@ jobs:
       - name: Generate Documentation
         run: python docs/create_docs.py
 
+      - name: Check for changes in docs
+        id: check_changes
+        run: |
+          if git diff --exit-code; then
+            echo "No changes to commit."
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo $(git diff)
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Commit and Push Docs
+        if: steps.check_changes.outputs.changes == 'true'
         run: |
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
