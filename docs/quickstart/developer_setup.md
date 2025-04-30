@@ -22,7 +22,6 @@ RAG__LLMS__OPENAI__API_KEY=...
 RAG__LANGFUSE__DATABASE__USER=user
 RAG__LANGFUSE__DATABASE__PASSWORD=password
 
-
 RAG__LANGFUSE__SECRET_KEY=required_placeholder
 RAG__LANGFUSE__PUBLIC_KEY=required_placeholder
 ```
@@ -57,7 +56,7 @@ To initialize the Langfuse and vector store services, run the initialization scr
 build/workstation/init.sh --env local
 ```
 
-**_NOTE:_**  Depending on your OS and the setup you might need to give execute permission to the initialization script e.g. `chmod u+x build/workstation/init.sh`
+**_NOTE:_**  Depending on your OS and the setup you might need to give execute permission to the initialization script e.g. `chmod u+x build/workstation/init.sh`.
 
 Once initialized, access the Langfuse web server on your localhost (port defined in [configuration.local.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.local.json) under `augmentation.langfuse.port`). Use the Langfuse UI to:
 
@@ -86,7 +85,7 @@ Run the embedding stage script:
 python src/embed.py --env local --on-prem-config
 ```
 
-**_Note_:** The embedding process may take significant time, depending on the size of your datasource. Use `export_limit` fields in configuration to speed up the process.
+**_Note_:** The embedding process may take significant time, depending on the size of your datasource. Use `export_limit` fields in configuration to speed up the process. Moreover, for [configuration.local.json](https://github.com/feld-m/rag_blueprint/blob/main/configurations/configuration.local.json) setup you can keep `required_placeholders` in `configurations/secrets.local.env`.
 
 #### Augmentation Stage
 
