@@ -122,9 +122,13 @@ class BundestagMineClient(APIClient):
             Iterator[AgendaItem]: An iterator of valid agenda items as Pydantic models.
         """
         result = self.safe_get(f"GetAgendaItemsOfProtocol/{protocol_id}")
+        if result is None:
+            self.logger.debug(f"No agenda items found for {protocol_id}")
+            return
+
         items = result.get("agendaItems")
 
-        if items is None:
+        if "items" == None:
             self.logger.debug(f"No agenda items found for {protocol_id}")
             return
         if not isinstance(items, list):
