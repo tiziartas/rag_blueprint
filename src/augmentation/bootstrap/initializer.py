@@ -117,3 +117,13 @@ class AugmentationInitializer(EmbeddingInitializer):
             prompt_name="default_system_prompt",
             prompt_template="",
         )
+
+        langfuse_prompt_service.create_prompt_if_not_exists(
+            prompt_name="default_input_guardrail_prompt",
+            prompt_template="",
+        )
+
+        langfuse_prompt_service.create_prompt_if_not_exists(
+            prompt_name="default_output_guardrail_prompt",
+            prompt_template="",
+        )
