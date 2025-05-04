@@ -12,8 +12,8 @@ sys.path.append("./src")
 from extraction.datasources.bundestag.client import (
     AgendaItem,
     BundestagMineClient,
+    BundestagSpeech,
     Protocol,
-    Speech,
 )
 
 
@@ -66,7 +66,7 @@ class Fixtures:
                             {
                                 "id": str(uuid4()),
                                 "speakerId": f"speaker_{i}",
-                                "text": f"Speech {i} content",
+                                "text": f"BundestagSpeech {i} content",
                             }
                             for i in range(speeches_per_item)
                         ]
@@ -187,7 +187,7 @@ class Assertions:
 
     def assert_speeches(
         self,
-        speeches: Iterator[Speech],
+        speeches: Iterator[BundestagSpeech],
         protocol: Protocol,
         agenda_item: AgendaItem,
     ):
@@ -200,7 +200,7 @@ class Assertions:
         expected_ids = [s["id"] for s in expected_speeches]
         assert set(speech_ids) == set(expected_ids)
 
-    def assert_all_speeches(self, speeches: Iterator[Speech]):
+    def assert_all_speeches(self, speeches: Iterator[BundestagSpeech]):
         speeches_list = list(speeches)
 
         expected_count = 0

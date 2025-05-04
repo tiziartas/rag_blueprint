@@ -6,9 +6,9 @@ sys.path.append("./src")
 
 from extraction.datasources.bundestag.client import (
     AgendaItem,
+    BundestagSpeech,
     Protocol,
     Speaker,
-    Speech,
 )
 from extraction.datasources.bundestag.document import BundestagMineDocument
 from extraction.datasources.bundestag.parser import (
@@ -37,7 +37,7 @@ class Fixtures:
 
         agenda_item = AgendaItem(id=str(uuid.uuid4()), agendaItemNumber="42")
 
-        self.speech = Speech(
+        self.speech = BundestagSpeech(
             id=str(uuid.uuid4()),
             text="This is a test markdown content.",
             speakerId=speaker.id,

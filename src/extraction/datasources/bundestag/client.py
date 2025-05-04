@@ -32,7 +32,9 @@ class Protocol(BaseModel):
     date: Optional[str] = None
 
 
-class Speech(BaseModel):
+class BundestagSpeech(BaseModel):
+    """Represents a speech from BundestagMine API."""
+
     id: str
     speakerId: str
     text: str
@@ -41,9 +43,9 @@ class Speech(BaseModel):
     agendaItem: Optional[AgendaItem] = None
 
     @model_validator(mode="after")
-    def validate_text_not_empty(self) -> "Speech":
+    def validate_text_not_empty(self) -> "BundestagSpeech":
         if not self.text or self.text.strip() == "":
-            raise ValueError("Speech text cannot be empty")
+            raise ValueError("BundestagSpeech text cannot be empty")
         return self
 
 
@@ -175,7 +177,7 @@ class BundestagMineClient(APIClient):
         self,
         protocol: Protocol,
         agenda_item: AgendaItem,
-    ) -> Iterator[Speech]:
+    ) -> Iterator[BundestagSpeech]:
         """
         Fetches speeches for a specific agenda item within a protocol.
 
@@ -185,7 +187,7 @@ class BundestagMineClient(APIClient):
             agenda_item_number (str): The agenda item number.
 
         Returns:
-            Iterator[Speech]: An iterator of valid speeches as Pydantic models.
+            Iterator[BundestagSpeech]: An iterator of valid speeches as Pydantic models.
         """
         raw = f"{protocol.legislaturePeriod},{protocol.number},{agenda_item.agendaItemNumber}"
         encoded = quote(raw, safe="")
@@ -208,7 +210,7 @@ class BundestagMineClient(APIClient):
 
         for speech in speeches:
             try:
-                speech = Speech.model_validate(speech)
+                speech = BundestagSpeech.model_validate(speech)
                 speech.protocol = protocol
                 speech.agendaItem = agenda_item
                 yield speech
@@ -217,12 +219,12 @@ class BundestagMineClient(APIClient):
                     f"Failed to validate speech: {speech}. Error: {e}"
                 )
 
-    def fetch_all_speeches(self) -> Iterator[Speech]:
+    def fetch_all_speeches(self) -> Iterator[BundestagSpeech]:
         """
         Fetches all speeches by iterating through protocols and their agenda items.
 
         Returns:
-            Iterator[Speech]: An iterator of valid speeches as Pydantic models.
+            Iterator[BundestagSpeech]: An iterator of valid speeches as Pydantic models.
         """
         for protocol in self.get_protocols():
             self.logger.info(f"Processing protocol {protocol.id}")

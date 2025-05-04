@@ -2,7 +2,7 @@ from typing import Type
 
 from core.base_factory import Factory
 from core.logger import LoggerConfiguration
-from extraction.datasources.bundestag.client import Speech
+from extraction.datasources.bundestag.client import BundestagSpeech
 from extraction.datasources.bundestag.configuration import (
     BundestagMineDatasourceConfiguration,
 )
@@ -14,7 +14,7 @@ class BundestagMineDatasourceParser(BaseParser[BundestagMineDocument]):
 
     logger = LoggerConfiguration.get_logger(__name__)
 
-    def parse(self, speech: Speech) -> BundestagMineDocument:
+    def parse(self, speech: BundestagSpeech) -> BundestagMineDocument:
         """
         Parse content into a BundestagMineDocument object.
 
@@ -27,7 +27,7 @@ class BundestagMineDatasourceParser(BaseParser[BundestagMineDocument]):
         metadata = self._extract_metadata(speech)
         return BundestagMineDocument(text=speech.text, metadata=metadata)
 
-    def _extract_metadata(self, speech: Speech) -> dict:
+    def _extract_metadata(self, speech: BundestagSpeech) -> dict:
         """
         Extract metadata from the response.
 
