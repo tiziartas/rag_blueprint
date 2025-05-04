@@ -55,16 +55,11 @@ class BundestagMineDatasourceReader(BaseReader):
         yield_counter = 0
 
         for speech in speech_iterator:
-            speech_limit = (
-                self.export_limit - yield_counter
-                if self.export_limit is not None
-                else None
-            )
-            if speech_limit is not None and speech_limit <= 0:
-                break
+            if self._limit_reached(yield_counter, self.export_limit):
+                return
 
             self.logger.info(
-                f"[{yield_counter}/{self.export_limit}] Reading Bundestag speech."
+                f"Fetched Bundestag speech {yield_counter}/{self.export_limit}."
             )
             yield_counter += 1
             yield speech

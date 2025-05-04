@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Optional
 
 
 class BaseReader(ABC):
@@ -28,3 +28,19 @@ class BaseReader(ABC):
             NotImplementedError: This abstract method must be implemented by subclasses.
         """
         pass
+
+    @staticmethod
+    def _limit_reached(yield_count: int, limit: Optional[int]) -> bool:
+        """Check if the object retrieval limit has been reached.
+
+        Determines whether the number of fetched objects has reached or exceeded
+        the specified limit.
+
+        Args:
+            yield_count: Current number of objects fetched
+            limit: Maximum number of objects to retrieve (None for unlimited)
+
+        Returns:
+            bool: True if limit reached or exceeded, False otherwise
+        """
+        return limit is not None and yield_count >= limit
