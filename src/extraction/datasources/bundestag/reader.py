@@ -1,8 +1,6 @@
 import logging
 from typing import AsyncIterator
 
-from tqdm import tqdm
-
 from core import Factory
 from core.logger import LoggerConfiguration
 from extraction.datasources.bundestag.client import (
@@ -51,42 +49,25 @@ class BundestagMineDatasourceReader(BaseReader):
             content and metadata such as text, speaker data, and last update information
         """
         self.logger.info(
-            f"Fetching speeches from BundestagMine with limit {self.export_limit}"
+            f"Reading speeches from BundestagMine with limit {self.export_limit}"
         )
         speech_iterator = self.client.fetch_all_speeches()
         yield_counter = 0
-        pbar = self._get_pbar()
 
-        try:
-            for speech in speech_iterator:
-                speech_limit = (
-                    self.export_limit - yield_counter
-                    if self.export_limit is not None
-                    else None
-                )
-                if speech_limit is not None and speech_limit <= 0:
-                    break
-
-                yield_counter += 1
-                pbar.update(1)
-                yield speech
-        finally:
-            pbar.close()
-
-    def _get_pbar(self) -> tqdm:
-        """Get the progress bar for tracking speech fetching progress.
-
-        Returns:
-            tqdm: Progress bar instance for tracking speech fetching
-        """
-        if self.export_limit is not None:
-            return tqdm(
-                total=self.export_limit,
-                desc="[BundestagMine] Fetching speeches",
-                unit="speech",
+        for speech in speech_iterator:
+            speech_limit = (
+                self.export_limit - yield_counter
+                if self.export_limit is not None
+                else None
             )
-        else:
-            return tqdm(desc="[BundestagMine] Fetching speeches", unit="speech")
+            if speech_limit is not None and speech_limit <= 0:
+                break
+
+            self.logger.info(
+                f"[{yield_counter}/{self.export_limit}] Reading Bundestag speech."
+            )
+            yield_counter += 1
+            yield speech
 
 
 class BundestagMineDatasourceReaderFactory(Factory):

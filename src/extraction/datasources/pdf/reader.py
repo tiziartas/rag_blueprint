@@ -2,8 +2,6 @@ import logging
 import os
 from typing import AsyncIterator, Type
 
-from tqdm import tqdm
-
 from core import Factory
 from core.logger import LoggerConfiguration
 from extraction.datasources.core.reader import BaseReader
@@ -38,7 +36,7 @@ class PDFDatasourceReader(BaseReader):
             AsyncIterator[str]: An asynchronous iterator of PDF file paths
         """
         self.logger.info(
-            f"Fetching PDF files from '{self.base_path}' with limit {self.export_limit}"
+            f"Reading PDF files from '{self.base_path}' with limit {self.export_limit}"
         )
 
         pdf_files = [
@@ -50,9 +48,10 @@ class PDFDatasourceReader(BaseReader):
             else pdf_files[: self.export_limit]
         )
 
-        for file_name in tqdm(
-            files_to_load, desc="[PDF] Loading files", unit="files"
-        ):
+        for i, file_name in enumerate(files_to_load):
+            self.logger.info(
+                f"[{i}/{self.export_limit}] Reading PDF file '{file_name}'"
+            )
             file_path = os.path.join(self.base_path, file_name)
             if os.path.isfile(file_path):
                 yield file_path

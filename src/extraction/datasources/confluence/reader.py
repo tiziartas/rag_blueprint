@@ -4,7 +4,6 @@ from typing import AsyncIterator, Dict, List
 from atlassian import Confluence
 from pydantic import BaseModel, Field
 from requests import HTTPError
-from tqdm import tqdm
 
 from core import Factory
 from core.logger import LoggerConfiguration
@@ -88,7 +87,7 @@ class ConfluenceDatasourceReader(BaseReader):
             AsyncIterator[ConfluencePage]: An async iterator of Confluence pages.
         """
         self.logger.info(
-            f"Fetching pages from Confluence with limit {self.export_limit}"
+            f"Reading pages from Confluence with limit {self.export_limit}"
         )
         response = self.client.get_all_spaces(space_type="global")
         spaces = [Space.model_validate(space) for space in response["results"]]
@@ -105,17 +104,17 @@ class ConfluenceDatasourceReader(BaseReader):
                 break
 
             space_pages = self._get_all_pages(space.key, space_limit)
-            for page in tqdm(
-                space_pages,
-                desc=f"[Confluence] Reading {space.key} space pages content",
-                unit="pages",
-            ):
+            for page in space_pages:
                 yield_counter += 1
                 if (
                     self.export_limit is not None
                     and yield_counter > self.export_limit
                 ):
                     break
+
+                self.logger.info(
+                    f"[{yield_counter}/{self.export_limit}] Reading Confluence page."
+                )
                 yield page
 
     def _get_all_pages(self, space: str, limit: int) -> List[ConfluencePage]:
