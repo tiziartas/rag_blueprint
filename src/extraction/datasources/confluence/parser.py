@@ -8,6 +8,7 @@ from extraction.datasources.confluence.configuration import (
     ConfluenceDatasourceConfiguration,
 )
 from extraction.datasources.confluence.document import ConfluenceDocument
+from extraction.datasources.confluence.reader import ConfluencePage
 from extraction.datasources.core.parser import BaseParser
 
 
@@ -22,15 +23,16 @@ class ConfluenceDatasourceParser(BaseParser[ConfluenceDocument]):
 
         Args:
             configuration: Configuration object containing Confluence connection details
+            parser: MarkItDown instance for converting HTML to markdown
         """
         self.configuration = configuration
         self.parser = parser
 
-    def parse(self, page: str) -> ConfluenceDocument:
+    def parse(self, page: ConfluencePage) -> ConfluenceDocument:
         """Parse a Confluence page into a document.
 
         Args:
-            page: Dictionary containing Confluence page information
+            page: Confluence page details
 
         Returns:
             ConfluenceDocument: Parsed document with extracted text and metadata
@@ -39,17 +41,17 @@ class ConfluenceDatasourceParser(BaseParser[ConfluenceDocument]):
         metadata = self._extract_metadata(page, self.configuration.base_url)
         return ConfluenceDocument(text=markdown, metadata=metadata)
 
-    def _get_page_markdown(self, page: dict) -> str:
+    def _get_page_markdown(self, page: ConfluencePage) -> str:
         """Extract markdown content from a Confluence page. Because of MarkItDown,
         we need to write the HTML content to a temporary file and then convert it to markdown.
 
         Args:
-            page: Dictionary containing Confluence page details
+            page: Confluence page details
 
         Returns:
             str: Markdown content of the page
         """
-        html_content = page["body"]["view"]["value"]
+        html_content = page.body.view.value
         if not html_content:
             return ""
 
@@ -61,30 +63,28 @@ class ConfluenceDatasourceParser(BaseParser[ConfluenceDocument]):
             ).text_content
 
     @staticmethod
-    def _extract_metadata(page: dict, base_url: str) -> dict:
+    def _extract_metadata(page: ConfluencePage, base_url: str) -> dict:
         """Extract and format page metadata.
 
         Args:
-            page: Dictionary containing Confluence page details
+            page: Confluence page details
             base_url: Base URL of the Confluence instance
 
         Returns:
             dict: Structured metadata including dates, IDs, and URLs
         """
         return {
-            "created_time": page["history"]["createdDate"],
-            "created_date": page["history"]["createdDate"].split("T")[0],
+            "created_time": page.history.createdDate,
+            "created_date": page.history.createdDate.split("T")[0],
             "datasource": "confluence",
             "format": "md",
-            "last_edited_date": page["history"]["lastUpdated"]["when"],
-            "last_edited_time": page["history"]["lastUpdated"]["when"].split(
-                "T"
-            )[0],
-            "page_id": page["id"],
-            "space": page["_expandable"]["space"].split("/")[-1],
-            "title": page["title"],
+            "last_edited_date": page.history.lastUpdated.when,
+            "last_edited_time": page.history.lastUpdated.when.split("T")[0],
+            "page_id": page.id,
+            "space": page.expandable["space"].split("/")[-1],
+            "title": page.title,
             "type": "page",
-            "url": base_url + page["_links"]["webui"],
+            "url": base_url + page.links.webui,
         }
 
 
