@@ -1,11 +1,14 @@
 import sys
+import uuid
 
 sys.path.append("./src")
 
-from unittest.mock import Mock
 
-from extraction.datasources.bundestag.configuration import (
-    BundestagMineDatasourceConfiguration,
+from extraction.datasources.bundestag.client import (
+    AgendaItem,
+    BundestagSpeech,
+    Protocol,
+    Speaker,
 )
 from extraction.datasources.bundestag.document import BundestagMineDocument
 from extraction.datasources.bundestag.parser import (
@@ -15,30 +18,34 @@ from extraction.datasources.bundestag.parser import (
 
 class Fixtures:
     def __init__(self):
-        self.sample_response = None
-        self.configuration = None
+        self.speech = None
 
-    def with_sample_response(self) -> "Fixtures":
-        self.sample_response = {
-            "text": "This is a test markdown content.",
-            "legislaturePeriod": "19",
-            "protocolNumber": "123",
-            "date": "2023-01-01",
-            "speaker": {
-                "firstName": "John",
-                "lastName": "Doe",
-                "party": "Test Party",
-            },
-            "agendaItemNumber": "42",
-        }
-        return self
+    def with_speech(self) -> "Fixtures":
+        protocol = Protocol(
+            id=str(uuid.uuid4()),
+            legislaturePeriod="19",
+            number="123",
+            date="2023-01-01",
+        )
 
-    def with_invalid_response(self) -> "Fixtures":
-        self.sample_response = {}  # Empty dictionary missing required fields
-        return self
+        speaker = Speaker(
+            id=str(uuid.uuid4()),
+            firstName="John",
+            lastName="Doe",
+            party="Test Party",
+        )
 
-    def with_configuration(self) -> "Fixtures":
-        self.configuration = Mock(spec=BundestagMineDatasourceConfiguration)
+        agenda_item = AgendaItem(id=str(uuid.uuid4()), agendaItemNumber="42")
+
+        self.speech = BundestagSpeech(
+            id=str(uuid.uuid4()),
+            text="This is a test markdown content.",
+            speakerId=speaker.id,
+            protocol=protocol,
+            speaker=speaker,
+            agendaItem=agenda_item,
+        )
+
         return self
 
 
@@ -55,28 +62,32 @@ class Assertions:
         self.parser = arrangements.parser
 
     def assert_metadata_extraction(self, metadata: dict) -> "Assertions":
-        sample = self.fixtures.sample_response
+        speech = self.fixtures.speech
         assert metadata["datasource"] == "bundestag"
         assert metadata["language"] == "de"
         assert (
             metadata["url"]
-            == f"https://dserver.bundestag.de/btp/{sample['legislaturePeriod']}/{sample['legislaturePeriod']}{sample['protocolNumber']}.pdf"
+            == f"https://dserver.bundestag.de/btp/{speech.protocol.legislaturePeriod}/{speech.protocol.legislaturePeriod}{speech.protocol.number}.pdf"
         )
         assert (
             metadata["title"]
-            == f"Protocol/Legislature/AgendaItem {sample['protocolNumber']}/{sample['legislaturePeriod']}/{sample['agendaItemNumber']}"
+            == f"Protocol/Legislature/AgendaItem {speech.protocol.number}/{speech.protocol.legislaturePeriod}/{speech.agendaItem.agendaItemNumber}"
         )
         assert metadata["format"] == "md"
-        assert metadata["created_time"] == sample["date"]
-        assert metadata["last_edited_time"] == sample["date"]
-        assert metadata["speaker_party"] == sample["speaker"]["party"]
+        assert metadata["created_time"] == speech.protocol.date
+        assert metadata["last_edited_time"] == speech.protocol.date
+        assert metadata["speaker_party"] == speech.speaker.party
         assert (
             metadata["speaker"]
-            == f"{sample['speaker']['firstName']} {sample['speaker']['lastName']}"
+            == f"{speech.speaker.firstName} {speech.speaker.lastName}"
         )
-        assert metadata["agenda_item_number"] == sample["agendaItemNumber"]
-        assert metadata["protocol_number"] == sample["protocolNumber"]
-        assert metadata["legislature_period"] == sample["legislaturePeriod"]
+        assert (
+            metadata["agenda_item_number"] == speech.agendaItem.agendaItemNumber
+        )
+        assert metadata["protocol_number"] == speech.protocol.number
+        assert (
+            metadata["legislature_period"] == speech.protocol.legislaturePeriod
+        )
         return self
 
     def assert_none_metadata(self, metadata) -> "Assertions":
@@ -86,17 +97,17 @@ class Assertions:
     def assert_document_parsing(
         self, document: BundestagMineDocument
     ) -> "Assertions":
-        sample = self.fixtures.sample_response
+        speech = self.fixtures.speech
         assert isinstance(document, BundestagMineDocument)
-        assert document.text == sample["text"]
+        assert document.text == speech.text
         assert document.metadata["datasource"] == "bundestag"
         assert (
             document.metadata["speaker"]
-            == f"{sample['speaker']['firstName']} {sample['speaker']['lastName']}"
+            == f"{speech.speaker.firstName} {speech.speaker.lastName}"
         )
         assert (
             document.metadata["title"]
-            == f"Protocol/Legislature/AgendaItem {sample['protocolNumber']}/{sample['legislaturePeriod']}/{sample['agendaItemNumber']}"
+            == f"Protocol/Legislature/AgendaItem {speech.protocol.number}/{speech.protocol.legislaturePeriod}/{speech.agendaItem.agendaItemNumber}"
         )
         return self
 
@@ -120,11 +131,11 @@ class TestBundestagMineDatasourceParser:
     def test_extract_metadata(self):
         """Test the _extract_metadata method."""
         # Arrange
-        manager = Manager(Arrangements(Fixtures().with_sample_response()))
+        manager = Manager(Arrangements(Fixtures().with_speech()))
         parser = manager.get_parser()
 
         # Act
-        metadata = parser._extract_metadata(manager.fixtures.sample_response)
+        metadata = parser._extract_metadata(manager.fixtures.speech)
 
         # Assert
         manager.assertions.assert_metadata_extraction(metadata)
@@ -132,35 +143,11 @@ class TestBundestagMineDatasourceParser:
     def test_parse(self):
         """Test the parse method."""
         # Arrange
-        manager = Manager(Arrangements(Fixtures().with_sample_response()))
+        manager = Manager(Arrangements(Fixtures().with_speech()))
         parser = manager.get_parser()
 
         # Act
-        document = parser.parse(manager.fixtures.sample_response)
+        document = parser.parse(manager.fixtures.speech)
 
         # Assert
         manager.assertions.assert_document_parsing(document)
-
-    def test_extract_metadata_with_invalid_input(self):
-        """Test the _extract_metadata method with invalid input."""
-        # Arrange
-        manager = Manager(Arrangements(Fixtures().with_invalid_response()))
-        parser = manager.get_parser()
-
-        # Act
-        metadata = parser._extract_metadata(manager.fixtures.sample_response)
-
-        # Assert
-        manager.assertions.assert_none_metadata(metadata)
-
-    def test_parse_with_invalid_input(self):
-        """Test the parse method with invalid input."""
-        # Arrange
-        manager = Manager(Arrangements(Fixtures().with_invalid_response()))
-        parser = manager.get_parser()
-
-        # Act
-        document = parser.parse(manager.fixtures.sample_response)
-
-        # Assert
-        manager.assertions.assert_none_document(document)

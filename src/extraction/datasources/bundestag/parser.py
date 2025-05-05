@@ -1,7 +1,8 @@
-from typing import Optional, Type
+from typing import Type
 
 from core.base_factory import Factory
 from core.logger import LoggerConfiguration
+from extraction.datasources.bundestag.client import BundestagSpeech
 from extraction.datasources.bundestag.configuration import (
     BundestagMineDatasourceConfiguration,
 )
@@ -13,10 +14,9 @@ class BundestagMineDatasourceParser(BaseParser[BundestagMineDocument]):
 
     logger = LoggerConfiguration.get_logger(__name__)
 
-    def parse(self, response: dict) -> Optional[BundestagMineDocument]:
+    def parse(self, speech: BundestagSpeech) -> BundestagMineDocument:
         """
-        Parse content into a BundestagMineDocument object. If parsing fails,
-        return None and log an error message.
+        Parse content into a BundestagMineDocument object.
 
         Args:
             content: Raw response dict to be parsed
@@ -24,22 +24,12 @@ class BundestagMineDatasourceParser(BaseParser[BundestagMineDocument]):
         Returns:
             Parsed document of type BundestagMineDocument
         """
-        if "text" not in response:
-            self.logger.error("Response does not contain 'text' field.")
-            return None
+        metadata = self._extract_metadata(speech)
+        return BundestagMineDocument(text=speech.text, metadata=metadata)
 
-        markdown = response["text"]
-        metadata = self._extract_metadata(response)
-
-        if metadata is None:
-            self.logger.error("Failed to extract metadata from the response.")
-            return None
-
-        return BundestagMineDocument(text=markdown, metadata=metadata)
-
-    def _extract_metadata(self, response: dict) -> Optional[dict]:
+    def _extract_metadata(self, speech: BundestagSpeech) -> dict:
         """
-        Extract metadata from the response. In case of an error, return an empty dictionary.
+        Extract metadata from the response.
 
         Args:
             response: Raw response string
@@ -47,32 +37,28 @@ class BundestagMineDatasourceParser(BaseParser[BundestagMineDocument]):
         Returns:
             Dictionary containing extracted metadata
         """
-        try:
-            legislature_period = response["legislaturePeriod"]
-            protocol_number = response["protocolNumber"]
-            agenda_item_number = response["agendaItemNumber"]
-            speaker = response["speaker"]
+        legislature_period = speech.protocol.legislaturePeriod
+        protocol_number = speech.protocol.number
+        agenda_item_number = speech.agendaItem.agendaItemNumber
 
-            url = f"https://dserver.bundestag.de/btp/{legislature_period}/{legislature_period}{protocol_number}.pdf"
-            title = f"Protocol/Legislature/AgendaItem {protocol_number}/{legislature_period}/{agenda_item_number}"
-            speaker_name = f"{speaker['firstName']} {speaker['lastName']}"
-            return {
-                "datasource": "bundestag",
-                "language": "de",
-                "url": url,
-                "title": title,
-                "format": "md",
-                "created_time": response["date"],
-                "last_edited_time": response["date"],
-                "speaker_party": speaker["party"],
-                "speaker": speaker_name,
-                "agenda_item_number": agenda_item_number,
-                "protocol_number": protocol_number,
-                "legislature_period": legislature_period,
-            }
-        except Exception as e:
-            self.logger.error(f"Error extracting speech's metadata: {str(e)}")
-            return None
+        url = f"https://dserver.bundestag.de/btp/{legislature_period}/{legislature_period}{protocol_number}.pdf"
+        title = f"Protocol/Legislature/AgendaItem {protocol_number}/{legislature_period}/{agenda_item_number}"
+        speaker_name = f"{speech.speaker.firstName} {speech.speaker.lastName}"
+
+        return {
+            "datasource": "bundestag",
+            "language": "de",
+            "url": url,
+            "title": title,
+            "format": "md",
+            "created_time": speech.protocol.date,
+            "last_edited_time": speech.protocol.date,
+            "speaker_party": speech.speaker.party,
+            "speaker": speaker_name,
+            "agenda_item_number": agenda_item_number,
+            "protocol_number": protocol_number,
+            "legislature_period": legislature_period,
+        }
 
 
 class BundestagMineDatasourceParserFactory(Factory):

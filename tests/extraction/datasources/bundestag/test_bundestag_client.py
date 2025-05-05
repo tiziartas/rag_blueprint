@@ -1,12 +1,20 @@
 import sys
+import urllib.parse
+from typing import Iterator
 from unittest.mock import Mock
 from uuid import uuid4
 
-from apiclient.exceptions import APIClientError, ResponseParseError
+import pytest
+from apiclient.exceptions import ResponseParseError
 
 sys.path.append("./src")
 
-from extraction.datasources.bundestag.client import BundestagMineClient
+from extraction.datasources.bundestag.client import (
+    AgendaItem,
+    BundestagMineClient,
+    BundestagSpeech,
+    Protocol,
+)
 
 
 class Fixtures:
@@ -20,8 +28,9 @@ class Fixtures:
         self.protocol_data = [
             {
                 "id": str(uuid4()),
-                "legislaturePeriod": f"{i+19}",
-                "number": f"{i+100}",
+                "legislaturePeriod": i + 19,
+                "number": i + 100,
+                "date": None,
             }
             for i in range(count)
         ]
@@ -57,7 +66,7 @@ class Fixtures:
                             {
                                 "id": str(uuid4()),
                                 "speakerId": f"speaker_{i}",
-                                "text": f"Speech {i} content",
+                                "text": f"BundestagSpeech {i} content",
                             }
                             for i in range(speeches_per_item)
                         ]
@@ -71,10 +80,31 @@ class Fixtures:
                 speaker_id = speech["speakerId"]
                 self.speaker_data[speaker_id] = {
                     "id": speaker_id,
-                    "name": f"Speaker {speaker_id}",
                     "party": "Test Party",
+                    "firstName": "John",
+                    "lastName": "Doe",
                 }
         return self
+
+    def get_first_protocol(self) -> Protocol:
+        if not self.protocol_data:
+            raise ValueError("No protocol data available")
+        return Protocol(**self.protocol_data[0])
+
+    def get_first_agenda_item(self, protocol: Protocol) -> AgendaItem:
+        if not self.agenda_items_data:
+            raise ValueError("No agenda items data available")
+        protocol_id = protocol.id
+        if protocol_id not in self.agenda_items_data:
+            raise ValueError(
+                f"No agenda items found for protocol {protocol_id}"
+            )
+        agenda_items = self.agenda_items_data[protocol_id]["agendaItems"]
+        if not agenda_items:
+            raise ValueError(
+                f"No agenda items found for protocol {protocol_id}"
+            )
+        return AgendaItem(**agenda_items[0])
 
 
 class Arrangements:
@@ -95,8 +125,6 @@ class Arrangements:
 
             if path.startswith("GetSpeechesOfAgendaItem/"):
                 key = path.split("/")[1]
-                import urllib.parse
-
                 key = urllib.parse.unquote(key)
                 return self.fixtures.speeches_data.get(key, {"speeches": []})
 
@@ -110,7 +138,7 @@ class Arrangements:
         return self
 
     def with_failing_protocols(self) -> "Arrangements":
-        self.client.safe_get = Mock(side_effect=APIClientError("API Error"))
+        self.client.safe_get = Mock(return_value=None)
         return self
 
     def with_failing_agenda_items(self) -> "Arrangements":
@@ -118,7 +146,7 @@ class Arrangements:
 
         def mock_with_fail(path: str):
             if path.startswith("GetAgendaItemsOfProtocol/"):
-                raise ResponseParseError("Parse Error")
+                return None
             return original_safe_get(path)
 
         self.client.safe_get = Mock(side_effect=mock_with_fail)
@@ -129,7 +157,7 @@ class Arrangements:
 
         def mock_with_fail(path: str):
             if path.startswith("GetSpeechesOfAgendaItem/"):
-                raise APIClientError("API Error")
+                return None
             return original_safe_get(path)
 
         self.client.safe_get = Mock(side_effect=mock_with_fail)
@@ -142,44 +170,50 @@ class Assertions:
         self.arrangements = arrangements
         self.client = arrangements.client
 
-    def assert_protocols(self, protocols):
-        assert protocols == self.fixtures.protocol_data
+    def assert_protocols(self, protocols: Iterator[Protocol]):
+        protocols_dump = [protocol.model_dump() for protocol in list(protocols)]
+        assert protocols_dump == self.fixtures.protocol_data
 
-    def assert_agenda_items(self, protocol_id, agenda_items):
+    def assert_agenda_items(
+        self, protocol_id: str, agenda_items: Iterator[AgendaItem]
+    ):
+        agenda_items_dump = [
+            agenda_item.model_dump() for agenda_item in list(agenda_items)
+        ]
         expected = self.fixtures.agenda_items_data.get(
             protocol_id, {"agendaItems": []}
         ).get("agendaItems", [])
-        assert agenda_items == expected
+        assert agenda_items_dump == expected
 
-    def assert_speeches(self, speeches, wp, num, ain):
-        key = f"{wp},{num},{ain}"
+    def assert_speeches(
+        self,
+        speeches: Iterator[BundestagSpeech],
+        protocol: Protocol,
+        agenda_item: AgendaItem,
+    ):
+        key = f"{protocol.legislaturePeriod},{protocol.number},{agenda_item.agendaItemNumber}"
         expected_speeches = self.fixtures.speeches_data.get(
             key, {"speeches": []}
         ).get("speeches", [])
 
-        for speech in speeches:
-            if "speakerId" in speech:
-                assert "speaker" in speech
-                assert speech["speaker"] == self.fixtures.speaker_data.get(
-                    speech["speakerId"], {}
-                )
-
-        speech_ids = [s["id"] for s in speeches]
+        speech_ids = [s.id for s in speeches]
         expected_ids = [s["id"] for s in expected_speeches]
         assert set(speech_ids) == set(expected_ids)
 
-    def assert_all_speeches(self, all_speeches_iterator):
-        all_speeches = list(all_speeches_iterator)
+    def assert_all_speeches(self, speeches: Iterator[BundestagSpeech]):
+        speeches_list = list(speeches)
 
         expected_count = 0
         for speech_group in self.fixtures.speeches_data.values():
             expected_count += len(speech_group["speeches"])
 
-        assert len(all_speeches) <= expected_count
+        assert len(speeches_list) <= expected_count
 
-        for speech in all_speeches:
-            if "speakerId" in speech:
-                assert "speaker" in speech
+        for speech in speeches_list:
+            assert (
+                speech.speaker.model_dump()
+                == self.fixtures.speaker_data.get(speech.speakerId, {})
+            )
 
 
 class Manager:
@@ -211,9 +245,9 @@ class TestBundestagMineClient:
         fixtures = Fixtures().with_protocols().with_agenda_items()
         manager = Manager(Arrangements(fixtures).mock_safe_get())
         client = manager.get_client()
-        protocol_id = fixtures.protocol_data[0]["id"]
 
         # Act
+        protocol_id = fixtures.protocol_data[0]["id"]
         agenda_items = client.get_agenda_items(protocol_id)
 
         # Assert
@@ -230,17 +264,14 @@ class TestBundestagMineClient:
         )
         manager = Manager(Arrangements(fixtures).mock_safe_get())
         client = manager.get_client()
-        wp = int(fixtures.protocol_data[0]["legislaturePeriod"])
-        num = int(fixtures.protocol_data[0]["number"])
-        ain = fixtures.agenda_items_data[fixtures.protocol_data[0]["id"]][
-            "agendaItems"
-        ][0]["agendaItemNumber"]
 
         # Act
-        speeches = client.get_speeches(wp, num, ain)
+        protocol = fixtures.get_first_protocol()
+        agenda_item = fixtures.get_first_agenda_item(protocol)
+        speeches = client.get_speeches(protocol, agenda_item)
 
         # Assert
-        manager.assertions.assert_speeches(speeches, wp, num, ain)
+        manager.assertions.assert_speeches(speeches, protocol, agenda_item)
 
     def test_fetch_all_speeches(self):
         # Arrange
@@ -255,19 +286,19 @@ class TestBundestagMineClient:
         client = manager.get_client()
 
         # Act
-        all_speeches_iterator = client.fetch_all_speeches()
+        speeches = client.fetch_all_speeches()
 
         # Assert
-        manager.assertions.assert_all_speeches(all_speeches_iterator)
+        manager.assertions.assert_all_speeches(speeches)
 
     def test_fetch_all_speeches_with_failing_protocols(self):
+        # Arrange
         manager = Manager(Arrangements(Fixtures()).with_failing_protocols())
         client = manager.get_client()
 
-        all_speeches_iterator = client.fetch_all_speeches()
-
-        all_speeches = list(all_speeches_iterator)
-        assert all_speeches == []
+        # Act-Assert
+        with pytest.raises(ResponseParseError):
+            list(client.fetch_all_speeches())
 
     def test_fetch_all_speeches_with_failing_agenda_items(self):
         fixtures = Fixtures().with_protocols()

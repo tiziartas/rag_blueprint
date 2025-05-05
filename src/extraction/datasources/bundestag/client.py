@@ -1,14 +1,52 @@
-from typing import Any, Dict, Iterator, List, Type
+from typing import Any, Iterator, Optional, Type
 from urllib.parse import quote
 
 from apiclient import APIClient, retry_request
-from apiclient.exceptions import APIClientError, ResponseParseError
+from apiclient.exceptions import ResponseParseError
+from pydantic import BaseModel, ValidationError, model_validator
 
 from core import SingletonFactory
 from core.logger import LoggerConfiguration
 from extraction.datasources.bundestag.configuration import (
     BundestagMineDatasourceConfiguration,
 )
+
+
+class Speaker(BaseModel):
+    id: str
+    firstName: str
+    lastName: str
+    party: str
+
+
+class AgendaItem(BaseModel):
+    id: str
+    agendaItemNumber: str
+    title: Optional[str] = None
+
+
+class Protocol(BaseModel):
+    id: str
+    legislaturePeriod: int
+    number: int
+    date: Optional[str] = None
+
+
+class BundestagSpeech(BaseModel):
+    """Represents a speech from BundestagMine API."""
+
+    id: str
+    speakerId: str
+    text: str
+    speaker: Optional[Speaker] = None
+    protocol: Optional[Protocol] = None
+    agendaItem: Optional[AgendaItem] = None
+
+    @model_validator(mode="after")
+    def validate_text_not_empty(self) -> "BundestagSpeech":
+        if not self.text or self.text.strip() == "":
+            raise ValueError("BundestagSpeech text cannot be empty")
+        return self
 
 
 # TODO: eventually refactor this to use async, HTTPX and tenacity
@@ -20,7 +58,7 @@ class BundestagMineClient(APIClient):
     BASE_URL = "https://bundestag-mine.de/api/DashboardController"
     logger = LoggerConfiguration.get_logger(__name__)
 
-    def safe_get(self, path: str) -> Dict[str, Any]:
+    def safe_get(self, path: str) -> Optional[Any]:
         """
         Perform a GET request, raise for HTTP errors, parse JSON, check API status.
 
@@ -39,33 +77,43 @@ class BundestagMineClient(APIClient):
         try:
             resp.raise_for_status()
         except Exception as e:
-            raise ResponseParseError(f"HTTP error for {url}: {e}")
+            self.logger.error(f"HTTP error for {url}: {e}")
+            return None
 
         data = resp.json()
         if not isinstance(data, dict) or data.get("status") != "200":
-            raise ResponseParseError(f"Unexpected response for {url}: {data}")
+            self.logger.error(f"Unexpected response for {url}: {data}")
+            return None
 
         result = data.get("result")
         if result is None:
             self.logger.debug(f"No result found for {url}")
-            return {}
+            return None
+
         return result
 
-    def get_protocols(self) -> List[Dict[str, Any]]:
+    def get_protocols(self) -> Iterator[Protocol]:
         """
         Fetches the list of all protocols.
 
         Returns:
-            List[Dict[str, Any]]: A list of protocols.
+            Iterator[Protocol]: An iterator of valid protocols as Pydantic models.
         """
         result = self.safe_get("GetProtocols")
         if not isinstance(result, list):
             raise ResponseParseError(
                 f"Expected list of protocols, got: {result}"
             )
-        return result
 
-    def get_agenda_items(self, protocol_id: str) -> List[Dict[str, Any]]:
+        for protocol_data in result:
+            try:
+                yield Protocol.model_validate(protocol_data)
+            except ValidationError as e:
+                self.logger.warning(
+                    f"Failed to validate protocol: {protocol_data}. Error: {e}"
+                )
+
+    def get_agenda_items(self, protocol_id: str) -> Iterator[AgendaItem]:
         """
         Fetches agenda items for a specific protocol ID.
 
@@ -73,33 +121,63 @@ class BundestagMineClient(APIClient):
             protocol_id (str): The ID of the protocol.
 
         Returns:
-            List[Dict[str, Any]]: A list of agenda items.
+            Iterator[AgendaItem]: An iterator of valid agenda items as Pydantic models.
         """
         result = self.safe_get(f"GetAgendaItemsOfProtocol/{protocol_id}")
-        items = result.get("agendaItems")
-        if items is None:
+        if result is None:
             self.logger.debug(f"No agenda items found for {protocol_id}")
-            return []
+            return
+
+        items = result.get("agendaItems")
+
+        if "items" == None:
+            self.logger.debug(f"No agenda items found for {protocol_id}")
+            return
         if not isinstance(items, list):
-            raise ResponseParseError(
+            self.logger.error(
                 f"Expected list of agendaItems for {protocol_id}, got: {items}"
             )
-        return items
+            return
 
-    def get_speaker_data(self, speaker_id: str) -> Dict[str, Any]:
-        """ """
+        for item_data in items:
+            try:
+                yield AgendaItem.model_validate(item_data)
+            except ValidationError as e:
+                self.logger.warning(
+                    f"Failed to validate agenda item: {item_data}. Error: {e}"
+                )
+
+    def get_speaker_data(self, speaker_id: str) -> Optional[Speaker]:
+        """
+        Fetches speaker data for a specific speaker ID.
+
+        Args:
+            speaker_id (str): The ID of the speaker.
+
+        Returns:
+            Optional[Speaker]: Speaker data as a Pydantic model, or None if validation fails.
+        """
         result = self.safe_get(f"GetSpeakerById/{speaker_id}")
         if not isinstance(result, dict):
-            raise ResponseParseError(f"Expected speaker data, got: {result}")
-        return result
+            self.logger.error(
+                f"Expected speaker data for {speaker_id}, got: {result}"
+            )
+            return None
+
+        try:
+            return Speaker.model_validate(result)
+        except ValidationError as e:
+            self.logger.warning(
+                f"Failed to validate speaker data for {speaker_id}: {result}. Error: {e}"
+            )
+            return None
 
     @retry_request
     def get_speeches(
         self,
-        legislature_period: int,
-        protocol_number: int,
-        agenda_item_number: str,
-    ) -> List[Dict[str, Any]]:
+        protocol: Protocol,
+        agenda_item: AgendaItem,
+    ) -> Iterator[BundestagSpeech]:
         """
         Fetches speeches for a specific agenda item within a protocol.
 
@@ -109,93 +187,58 @@ class BundestagMineClient(APIClient):
             agenda_item_number (str): The agenda item number.
 
         Returns:
-            List[Dict[str, Any]]: A list of speeches.
+            Iterator[BundestagSpeech]: An iterator of valid speeches as Pydantic models.
         """
-        raw = f"{legislature_period},{protocol_number},{agenda_item_number}"
+        raw = f"{protocol.legislaturePeriod},{protocol.number},{agenda_item.agendaItemNumber}"
         encoded = quote(raw, safe="")
         result = self.safe_get(f"GetSpeechesOfAgendaItem/{encoded}")
+
+        if result is None:
+            self.logger.debug(f"No speeches found for {raw}")
+            return
+
         speeches = result.get("speeches")
         if speeches is None:
             self.logger.debug(f"No speeches found for {raw}")
-            return []
+            return
+
         if not isinstance(speeches, list):
-            raise ResponseParseError(
+            self.logger.warning(
                 f"Expected list of speeches for {raw}, got: {speeches}"
             )
+            return
 
-        # add speaker data
         for speech in speeches:
-            speaker_id = speech.get("speakerId")
-            if speaker_id is None:
-                continue
             try:
-                speaker_data = self.get_speaker_data(speaker_id)
-                speech["speaker"] = speaker_data
-            except (APIClientError, ResponseParseError):
-                self.logger.debug(
-                    f"Failed to get speaker data for {speaker_id}"
+                speech = BundestagSpeech.model_validate(speech)
+                speech.protocol = protocol
+                speech.agendaItem = agenda_item
+                yield speech
+            except ValidationError as e:
+                self.logger.warning(
+                    f"Failed to validate speech: {speech}. Error: {e}"
                 )
-                continue
 
-        return speeches
-
-    def fetch_all_speeches(self) -> Iterator[Dict[str, Any]]:
+    def fetch_all_speeches(self) -> Iterator[BundestagSpeech]:
         """
         Fetches all speeches by iterating through protocols and their agenda items.
 
         Returns:
-            List[Dict[str, Any]]: A list containing all speeches found.
+            Iterator[BundestagSpeech]: An iterator of valid speeches as Pydantic models.
         """
-        try:
-            protocols = self.get_protocols()
-        except (APIClientError, ResponseParseError):
-            self.logger.debug("Failed to get protocols")
-            return []
+        for protocol in self.get_protocols():
+            self.logger.info(f"Processing protocol {protocol.id}")
 
-        for prot in protocols:
-            pid = prot.get("id")
-            wp = prot.get("legislaturePeriod")
-            num = prot.get("number")
-            date = prot.get("date")
-            if not pid or wp is None or num is None:
-                self.logger.debug(
-                    f"Skipping protocol with missing data: {prot}. "
-                )
-                continue  # skip incomplete entries
+            for agenda_item in self.get_agenda_items(protocol.id):
 
-            # normalize types
-            try:
-                wp_int = int(wp)
-                num_int = int(num)
-            except (ValueError, TypeError):
-                continue
-
-            # get agenda items
-            try:
-                items = self.get_agenda_items(pid)
-            except (APIClientError, ResponseParseError):
-                self.logger.debug(
-                    f"Failed to get agenda items for protocol {pid}"
-                )
-                continue
-
-            for item in items:
-                ain = item.get("agendaItemNumber")
-                if ain is None:
-                    self.logger.debug(
-                        f"Skipping agenda item with missing number: {item}. "
-                    )
-                    continue
-                try:
-                    speeches = self.get_speeches(wp_int, num_int, str(ain))
-                    for speech in speeches:
-                        speech["date"] = date
+                for speech in self.get_speeches(
+                    protocol=protocol,
+                    agenda_item=agenda_item,
+                ):
+                    speaker = self.get_speaker_data(speech.speakerId)
+                    if speaker:
+                        speech.speaker = speaker
                         yield speech
-                except (APIClientError, ResponseParseError):
-                    self.logger.debug(
-                        f"Failed to get speeches for protocol {pid}, agenda item {ain}"
-                    )
-                    continue
 
 
 class BundestagMineClientFactory(SingletonFactory):

@@ -12,7 +12,10 @@ from atlassian import Confluence
 from extraction.datasources.confluence.configuration import (
     ConfluenceDatasourceConfiguration,
 )
-from extraction.datasources.confluence.reader import ConfluenceDatasourceReader
+from extraction.datasources.confluence.reader import (
+    ConfluenceDatasourceReader,
+    ConfluencePage,
+)
 
 
 class Fixtures:
@@ -46,6 +49,7 @@ class Fixtures:
     def _create_page(self, space: str) -> dict:
         return {
             "id": str(uuid4()),
+            "title": f"{space} page",
             "body": {
                 "view": {
                     "value": """
@@ -61,7 +65,6 @@ class Fixtures:
                 "lastUpdated": {"when": "2021-01-01T00:00:00"},
             },
             "_expandable": {"space": f"/space/{space}"},
-            "title": f"{space} page",
             "_links": {
                 "webui": f"/space/{space}/page",
             },
@@ -116,7 +119,9 @@ class Assertions:
         self.arrangements = arrangements
         self.service = arrangements.service
 
-    def assert_confluence_pages(self, confluence_pages: List[dict]) -> None:
+    def assert_confluence_pages(
+        self, confluence_pages: List[ConfluencePage]
+    ) -> None:
         all_available_pages = [
             page
             for pages in self.fixtures.spaces_pages.values()
@@ -130,9 +135,9 @@ class Assertions:
 
         for i, actual_document in enumerate(confluence_pages):
             expected_page = all_available_pages[i]
-            assert actual_document["id"] == expected_page["id"]
+            assert actual_document.id == expected_page["id"]
             assert (
-                actual_document["body"]["view"]["value"]
+                actual_document.body.view.value
                 == expected_page["body"]["view"]["value"]
             )
 
