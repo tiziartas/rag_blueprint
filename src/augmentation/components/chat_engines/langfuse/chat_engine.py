@@ -211,9 +211,10 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
 
         if not self._is_input_allowed(message):
             return AgentChatResponse(
-                response="I'm unable to process this request as it doesn't comply with our usage guidelines.",
+                response="I'm unable to answer this question as it doesn't comply with our usage guidelines.",
+                sources=[],
                 source_nodes=[],
-                metadata={"input_compliant": False},
+                is_dummy_stream=False,
             )
 
         response = super().chat(message=message, chat_history=chat_history)
@@ -221,8 +222,9 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         if not self._is_output_allowed(response):
             return AgentChatResponse(
                 response="I apologize, but I'm unable to provide a response to this request.",
+                sources=[],
                 source_nodes=[],
-                metadata={"output_compliant": False},
+                is_dummy_stream=False,
             )
 
         return response
@@ -253,8 +255,9 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         if not self._is_input_allowed(message):
             return AgentChatResponse(
                 response="I'm unable to answer this question as it doesn't comply with our usage guidelines.",
+                sources=[],
                 source_nodes=[],
-                metadata={"input_compliant": False},
+                is_dummy_stream=False,
             )
 
         response = super().achat(message=message, chat_history=chat_history)
@@ -262,8 +265,9 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         if not self._is_output_allowed(response):
             return AgentChatResponse(
                 response="I apologize, but I'm unable to provide a response to this question.",
+                sources=[],
                 source_nodes=[],
-                metadata={"output_compliant": False},
+                is_dummy_stream=False,
             )
 
         return response
@@ -292,18 +296,25 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         )
 
         if not self._is_input_allowed(message):
-            return StreamingAgentChatResponse(
+            return AgentChatResponse(
                 response="I'm unable to answer this question as it doesn't comply with our usage guidelines.",
+                sources=[],
                 source_nodes=[],
-                metadata={"input_compliant": False},
+                is_dummy_stream=True,
             )
 
         response = super().stream_chat(
             message=message, chat_history=chat_history
         )
 
-        # TODO: figure out a way to handle this in the application
-        # For streaming, we can't check output compliance beforehand
+        if not self._is_output_allowed(response):
+            return AgentChatResponse(
+                response="I apologize, but I'm unable to provide a response to this question.",
+                sources=[],
+                source_nodes=[],
+                is_dummy_stream=True,
+            )
+
         return response
 
     @trace_method("chat")
@@ -331,18 +342,25 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
 
         # Check input compliance
         if not self._is_input_allowed(message):
-            return StreamingAgentChatResponse(
+            return AgentChatResponse(
                 response="I'm unable to answer this question as it doesn't comply with our usage guidelines.",
+                sources=[],
                 source_nodes=[],
-                metadata={"input_compliant": False},
+                is_dummy_stream=True,
             )
 
         response = await super().astream_chat(
             message=message, chat_history=chat_history
         )
 
-        # TODO: figure out a way to handle this in the application
-        # For streaming, we can't check output compliance beforehand
+        if not self._is_output_allowed(response):
+            return AgentChatResponse(
+                response="I apologize, but I'm unable to provide a response to this question.",
+                sources=[],
+                source_nodes=[],
+                is_dummy_stream=True,
+            )
+
         return response
 
     def get_current_langfuse_trace(self) -> StatefulTraceClient:
