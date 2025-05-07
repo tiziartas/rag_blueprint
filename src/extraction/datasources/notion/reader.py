@@ -4,7 +4,6 @@ from typing import Any, Callable, List, Tuple
 
 from more_itertools import chunked
 from notion_client import Client
-from tqdm import tqdm
 
 from core.base_factory import Factory
 from core.logger import LoggerConfiguration
@@ -149,38 +148,32 @@ class NotionDatasourceReader(BaseReader):
         """
         all_objects = []
         failed_exports = []
-        total_ids = sum(len(chunk) for chunk in chunked_ids)
+        number_of_chunks = len(chunked_ids)
 
-        with tqdm(
-            total=total_ids,
-            desc=f"[Notion] Exporting {objects_type.name}s",
-            unit="objects",
-        ) as pbar:
-            for chunk_ids in chunked_ids:
-                try:
-                    objects = await self.exporter.run(
-                        page_ids=(
-                            chunk_ids
-                            if objects_type == NotionObjectType.PAGE
-                            else None
-                        ),
-                        database_ids=(
-                            chunk_ids
-                            if objects_type == NotionObjectType.DATABASE
-                            else None
-                        ),
-                    )
-                    all_objects.extend(objects)
-                    pbar.update(len(chunk_ids))
-                    self.logger.debug(
-                        f"Added {len(objects)} {objects_type.name}s"
-                    )
-                except Exception as e:
-                    self.logger.error(
-                        f"Export failed for {objects_type.name}: {chunk_ids}. {e}"
-                    )
-                    failed_exports.extend(chunk_ids)
-                    pbar.update(len(chunk_ids))
+        for i, chunk_ids in enumerate(chunked_ids):
+            self.logger.info(
+                f"[{i}/{number_of_chunks}] Reading chunk of Notion {objects_type.name}s."
+            )
+            try:
+                objects = await self.exporter.run(
+                    page_ids=(
+                        chunk_ids
+                        if objects_type == NotionObjectType.PAGE
+                        else None
+                    ),
+                    database_ids=(
+                        chunk_ids
+                        if objects_type == NotionObjectType.DATABASE
+                        else None
+                    ),
+                )
+                all_objects.extend(objects)
+                self.logger.debug(f"Added {len(objects)} {objects_type.name}s")
+            except Exception as e:
+                self.logger.error(
+                    f"Export failed for {objects_type.name}: {chunk_ids}. {e}"
+                )
+                failed_exports.extend(chunk_ids)
 
         if failed_exports:
             self.logger.warning(
@@ -201,7 +194,7 @@ class NotionDatasourceReader(BaseReader):
                 - List of page IDs
         """
         self.logger.info(
-            f"Fetching all object ids from Notion's home page with limit {self.export_limit}..."
+            f"Reading all object ids from Notion's home page with limit {self.export_limit}..."
         )
         response = self._collect_paginated_api(
             function=self.client.databases.query,
@@ -240,7 +233,7 @@ class NotionDatasourceReader(BaseReader):
             return []
 
         self.logger.info(
-            f"Fetching all ids of {objects_type.name} objects from Notion API with limit {limit}..."
+            f"Reading all ids of {objects_type.name} objects from Notion API with limit {limit}..."
         )
 
         params = {

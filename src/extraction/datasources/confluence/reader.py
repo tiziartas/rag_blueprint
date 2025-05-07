@@ -1,10 +1,9 @@
 import logging
-from typing import AsyncIterator, Dict, List
+from typing import AsyncIterator, Dict, Iterator
 
 from atlassian import Confluence
 from pydantic import BaseModel, Field
 from requests import HTTPError
-from tqdm import tqdm
 
 from core import Factory
 from core.logger import LoggerConfiguration
@@ -88,37 +87,24 @@ class ConfluenceDatasourceReader(BaseReader):
             AsyncIterator[ConfluencePage]: An async iterator of Confluence pages.
         """
         self.logger.info(
-            f"Fetching pages from Confluence with limit {self.export_limit}"
+            f"Reading pages from Confluence with limit {self.export_limit}"
         )
         response = self.client.get_all_spaces(space_type="global")
         spaces = [Space.model_validate(space) for space in response["results"]]
-
         yield_counter = 0
 
         for space in spaces:
-            space_limit = (
-                self.export_limit - yield_counter
-                if self.export_limit is not None
-                else None
-            )
-            if space_limit is not None and space_limit <= 0:
-                break
+            for page in self._get_all_pages(space.key):
+                if self._limit_reached(yield_counter, self.export_limit):
+                    return
 
-            space_pages = self._get_all_pages(space.key, space_limit)
-            for page in tqdm(
-                space_pages,
-                desc=f"[Confluence] Reading {space.key} space pages content",
-                unit="pages",
-            ):
+                self.logger.info(
+                    f"Fetched Confluence page {yield_counter}/{self.export_limit}."
+                )
                 yield_counter += 1
-                if (
-                    self.export_limit is not None
-                    and yield_counter > self.export_limit
-                ):
-                    break
                 yield page
 
-    def _get_all_pages(self, space: str, limit: int) -> List[ConfluencePage]:
+    def _get_all_pages(self, space: str) -> Iterator[ConfluencePage]:
         """Fetch all pages from a specific Confluence space.
 
         Handles pagination internally to retrieve all pages from the specified space,
@@ -129,7 +115,7 @@ class ConfluenceDatasourceReader(BaseReader):
             limit: Maximum number of pages to fetch (None for unlimited)
 
         Returns:
-            List[ConfluencePage]: List of Confluence pages with content and metadata
+            Iterator[ConfluencePage]: Iterator of Confluence pages with content and metadata
         """
         start = 0
         params = {
@@ -138,7 +124,6 @@ class ConfluenceDatasourceReader(BaseReader):
             "status": None,
             "expand": "body.view,history.lastUpdated",
         }
-        all_pages = []
 
         try:
             while True:
@@ -146,35 +131,18 @@ class ConfluenceDatasourceReader(BaseReader):
                 pages = [
                     ConfluencePage.model_validate(page) for page in pages_raw
                 ]
-                all_pages.extend(pages)
+                if not pages:
+                    return
 
-                if len(pages) == 0 or ConfluenceDatasourceReader._limit_reached(
-                    all_pages, limit
-                ):
-                    break
+                for page in pages:
+                    yield page
 
-                start = len(all_pages)
+                start += len(pages)
                 params["start"] = start
         except HTTPError as e:
-            self.logger.warning(f"Error while fetching pages from {space}: {e}")
-
-        return all_pages if limit is None else all_pages[:limit]
-
-    @staticmethod
-    def _limit_reached(pages: List[ConfluencePage], limit: int) -> bool:
-        """Check if the page retrieval limit has been reached.
-
-        Determines whether the number of fetched pages has reached or exceeded
-        the specified limit.
-
-        Args:
-            pages: List of already retrieved pages
-            limit: Maximum number of pages to retrieve (None for unlimited)
-
-        Returns:
-            bool: True if limit reached or exceeded, False otherwise
-        """
-        return limit is not None and len(pages) >= limit
+            self.logger.warning(
+                f"Error while fetching Confluence pages from {space}: {e}"
+            )
 
 
 class ConfluenceDatasourceReaderFactory(Factory):
