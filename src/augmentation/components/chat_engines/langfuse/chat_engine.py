@@ -134,14 +134,7 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         if not self.input_guardrail_prompt_template:
             return True
 
-        prompt = f"""
-        {self.input_guardrail_prompt_template}
-
-        Should the user message be blocked (yes or no)?
-        User input: {message}
-
-        Answer:
-        """
+        prompt = self.input_guardrail_prompt_template.format(message)
 
         response = self._llm.complete(prompt)
         should_block = (
@@ -170,14 +163,7 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
             else str(response)
         )
 
-        prompt = f"""
-        {self.output_guardrail_prompt_template}
-
-        Should the LLM message be blocked (yes or no)?
-        LLM output: {response_text}
-
-        Answer:
-        """
+        prompt = self.output_guardrail_prompt_template.format(response_text)
 
         validation_response = self._llm.complete(prompt)
         should_block = (
@@ -519,16 +505,10 @@ class LangfuseChatEngineFactory(Factory):
         )
         input_guardrail_prompt_template = langfuse_prompt_service.get_prompt_template(
                 prompt_name=configuration.chat_engine.prompt_templates.input_guardrail_prompt_name
-            )
-
-        output_guardrail_prompt_template = None
-        if hasattr(
-            configuration.chat_engine.prompt_templates,
-            "output_guardrail_prompt_name",
-        ):
-            output_guardrail_prompt_template = langfuse_prompt_service.get_prompt_template(
-                prompt_name=configuration.chat_engine.prompt_templates.output_guardrail_prompt_name
-            )
+        )
+        output_guardrail_prompt_template = langfuse_prompt_service.get_prompt_template(
+            prompt_name=configuration.chat_engine.prompt_templates.output_guardrail_prompt_name
+        )
 
         return (
             condense_prompt_template,
