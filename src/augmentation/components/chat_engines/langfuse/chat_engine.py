@@ -517,14 +517,7 @@ class LangfuseChatEngineFactory(Factory):
         system_prompt_template = langfuse_prompt_service.get_prompt_template(
             prompt_name=configuration.chat_engine.prompt_templates.system_prompt_name
         )
-
-        # Get guardrail prompt templates if configured
-        input_guardrail_prompt_template = None
-        if hasattr(
-            configuration.chat_engine.prompt_templates,
-            "input_guardrail_prompt_name",
-        ):
-            input_guardrail_prompt_template = langfuse_prompt_service.get_prompt_template(
+        input_guardrail_prompt_template = langfuse_prompt_service.get_prompt_template(
                 prompt_name=configuration.chat_engine.prompt_templates.input_guardrail_prompt_name
             )
 
