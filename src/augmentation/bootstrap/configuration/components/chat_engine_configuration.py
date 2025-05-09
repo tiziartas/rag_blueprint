@@ -52,8 +52,9 @@ class ChatEnginePromptTemplates(BaseConfiguration):
     input_guardrail_prompt_name: str = Field(
         "default_input_guardrail_prompt",
         description=(
-            "The name of the input guardail prompt to use available in Langfuse prompts.",
+            "The name of the input guardrail prompt to use available in Langfuse prompts.",
             "The prompt is used to determine if the input is valid to be passed to the chat engine.",
+            "The LLM should respond with 'yes' or 'true' if the input should be blocked.",
         ),
     )
     output_guardrail_prompt_name: str = Field(
@@ -61,6 +62,7 @@ class ChatEnginePromptTemplates(BaseConfiguration):
         description=(
             "The name of the output guardrail prompt to use available in Langfuse prompts.",
             "The prompt is used to determine if the output of the chat engine is valid to be returned to the user.",
+            "The LLM should respond with 'yes' or 'true' if the output should be blocked.",
         ),
     )
 
