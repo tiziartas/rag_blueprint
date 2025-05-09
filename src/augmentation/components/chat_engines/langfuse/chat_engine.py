@@ -144,7 +144,7 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
 
     @trace_method("output_validation")
     def _is_output_allowed(
-        self, response: Union[AgentChatResponse, StreamingAgentChatResponse]
+        self, response: Union[AgentChatResponse, str]
     ) -> bool:
         """Check if generated output complies with output guardrail prompt template.
 
@@ -293,7 +293,10 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
             message=message, chat_history=chat_history
         )
 
-        if not self._is_output_allowed(response):
+        # NOTE: The response is a generator, so we need to join the tokens to check the output
+        str_response = "".join(token for token in response.response_gen)
+
+        if not self._is_output_allowed(str_response):
             return AgentChatResponse(
                 response="I apologize, but I'm unable to provide a response to this question.",
                 sources=[],
@@ -339,7 +342,10 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
             message=message, chat_history=chat_history
         )
 
-        if not self._is_output_allowed(response):
+        # NOTE: The response is a generator, so we need to join the tokens to check the output
+        str_response = "".join(token for token in response.response_gen)
+
+        if not self._is_output_allowed(str_response):
             return AgentChatResponse(
                 response="I apologize, but I'm unable to provide a response to this question.",
                 sources=[],
