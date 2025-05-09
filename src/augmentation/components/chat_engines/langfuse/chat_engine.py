@@ -504,7 +504,7 @@ class LangfuseChatEngineFactory(Factory):
             prompt_name=configuration.chat_engine.prompt_templates.system_prompt_name
         )
         input_guardrail_prompt_template = langfuse_prompt_service.get_prompt_template(
-                prompt_name=configuration.chat_engine.prompt_templates.input_guardrail_prompt_name
+            prompt_name=configuration.chat_engine.prompt_templates.input_guardrail_prompt_name
         )
         output_guardrail_prompt_template = langfuse_prompt_service.get_prompt_template(
             prompt_name=configuration.chat_engine.prompt_templates.output_guardrail_prompt_name
