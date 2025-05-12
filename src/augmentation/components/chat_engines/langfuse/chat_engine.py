@@ -294,9 +294,13 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         )
 
         # NOTE: The response is a generator, so we need to join the tokens to check the output
-        str_response = "".join(token for token in response.response_gen)
+        full_response = ""
+        chat_responses = []
+        for chat_response in response.chat_stream:
+            full_response = chat_response.message.content
+            chat_responses.append(chat_response)
 
-        if not self._is_output_allowed(str_response):
+        if not self._is_output_allowed(full_response):
             return AgentChatResponse(
                 response="I apologize, but I'm unable to provide a response to this question.",
                 sources=[],
@@ -304,7 +308,12 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
                 is_dummy_stream=True,
             )
 
-        return response
+        return StreamingAgentChatResponse(
+            chat_stream=(r for r in chat_responses),
+            sources=response.sources,
+            source_nodes=response.source_nodes,
+            is_writing_to_memory=response.is_writing_to_memory,
+        )
 
     @trace_method("chat")
     async def astream_chat(
@@ -343,9 +352,13 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         )
 
         # NOTE: The response is a generator, so we need to join the tokens to check the output
-        str_response = "".join(token for token in response.response_gen)
+        full_response = ""
+        chat_responses = []
+        for chat_response in response.chat_stream:
+            full_response = chat_response.message.content
+            chat_responses.append(chat_response)
 
-        if not self._is_output_allowed(str_response):
+        if not self._is_output_allowed(full_response):
             return AgentChatResponse(
                 response="I apologize, but I'm unable to provide a response to this question.",
                 sources=[],
@@ -353,7 +366,12 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
                 is_dummy_stream=True,
             )
 
-        return response
+        return StreamingAgentChatResponse(
+            chat_stream=(r for r in chat_responses),
+            sources=response.sources,
+            source_nodes=response.source_nodes,
+            is_writing_to_memory=response.is_writing_to_memory,
+        )
 
     def get_current_langfuse_trace(self) -> StatefulTraceClient:
         """Retrieve current Langfuse trace from registered callback handler.
