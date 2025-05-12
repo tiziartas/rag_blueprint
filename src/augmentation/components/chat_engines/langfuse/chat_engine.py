@@ -297,8 +297,9 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         full_response = ""
         chat_responses = []
         for chat_response in response.chat_stream:
-            full_response = chat_response.message.content
             chat_responses.append(chat_response)
+
+        full_response = chat_response.message.content
 
         if not self._is_output_allowed(full_response):
             return AgentChatResponse(
@@ -355,8 +356,9 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         full_response = ""
         chat_responses = []
         for chat_response in response.chat_stream:
-            full_response = chat_response.message.content
             chat_responses.append(chat_response)
+
+        full_response = chat_response.message.content
 
         if not self._is_output_allowed(full_response):
             return AgentChatResponse(
