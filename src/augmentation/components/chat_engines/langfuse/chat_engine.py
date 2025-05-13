@@ -121,7 +121,6 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         self.input_guardrail_prompt_template = input_guardrail_prompt_template
         self.output_guardrail_prompt_template = output_guardrail_prompt_template
 
-    @trace_method("input_validation")
     def _is_input_allowed(self, message: str) -> bool:
         """Check if user input complies with input guardrail prompt template.
 
@@ -142,7 +141,6 @@ class LangfuseChatEngine(CondensePlusContextChatEngine):
         )
         return not should_block
 
-    @trace_method("output_validation")
     def _is_output_allowed(
         self, response: Union[AgentChatResponse, str]
     ) -> bool:
@@ -482,6 +480,7 @@ class LangfuseChatEngineFactory(Factory):
         ) = cls._get_prompt_templates(configuration=configuration.augmentation)
 
         retriever.callback_manager = langfuse_callback_manager
+        llm.callback_manager = langfuse_callback_manager
         for postprocessor in postprocessors:
             postprocessor.callback_manager = langfuse_callback_manager
 
