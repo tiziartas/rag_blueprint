@@ -12,8 +12,7 @@ class LLMProviderName(str, Enum):
     Enumeration of supported language model providers.
     """
 
-    OPENAI = "openai"
-    OPENAI_LIKE = "openai-like"
+    pass
 
 
 class LLMConfiguration(BaseConfigurationWithSecrets):
