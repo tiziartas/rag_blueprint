@@ -31,8 +31,9 @@ class LiteLLMConfiguration(LLMConfiguration):
             extra="ignore",
         )
 
-        api_key: SecretStr = Field(
-            ..., description="API key for the model provider."
+        api_key: Optional[SecretStr] = Field(
+            None,
+            description="API key for the model provider. For some models, this is not required.",
         )
 
     provider: Literal[LLMProviderName.LITE_LLM] = Field(

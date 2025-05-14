@@ -37,8 +37,13 @@ class LiteLLMFactory(SingletonFactory):
             LiteLLM: An instance of the LiteLLM language model configured with the
                 provided settings.
         """
+        api_key = (
+            configuration.secrets.api_key.get_secret_value()
+            if configuration.secrets.api_key
+            else None
+        )
         return LiteLLM(
-            api_key=configuration.secrets.api_key.get_secret_value(),
+            api_key=api_key,
             api_base=configuration.api_base,
             model=configuration.name,
             max_tokens=configuration.max_tokens,
