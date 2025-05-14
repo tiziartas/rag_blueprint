@@ -153,6 +153,7 @@ If you want to use your local model called for instance `my-llm`, which is expos
 ```json
 "provider": "lite_llm",
 "name": "openai/my-llm",
+"api_base": "http://127.0.0.1/v1
 ```
 
 And the secrets will look as follows:
