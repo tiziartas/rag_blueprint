@@ -15,6 +15,7 @@ from llama_index.core.memory import BaseMemory
 from llama_index.core.postprocessor.types import BaseNodePostprocessor
 
 from augmentation.components.chat_engines.langfuse.chat_engine import (
+    GuardrailsEngine,
     LangfuseChatEngine,
 )
 
@@ -44,6 +45,7 @@ class Arrangements:
         self.postprocessors: List[BaseNodePostprocessor] = []
         self.callback_manager: CallbackManager = Mock(spec=CallbackManager)
         self.chainlit_tag_format: str = "tag_format: {message_id}"
+        self.guardrails_engine = Mock(spec=GuardrailsEngine)
 
         self.service = LangfuseChatEngine(
             retriever=self.retriever,
@@ -52,6 +54,7 @@ class Arrangements:
             node_postprocessors=self.postprocessors,
             callback_manager=self.callback_manager,
             chainlit_tag_format=self.chainlit_tag_format,
+            guardrails_engine=self.guardrails_engine,
         )
 
     def add_langfuse_callback_handler_to_callback_manager(
@@ -60,6 +63,14 @@ class Arrangements:
         self.callback_manager.handlers = [
             self.fixtures.langfuse_callback_handler
         ]
+        return self
+
+    def on_input_guard_skip(self) -> "Arrangements":
+        self.guardrails_engine.input_guard = Mock(return_value=None)
+        return self
+
+    def on_output_guard_skip(self) -> "Arrangements":
+        self.guardrails_engine.output_guard = Mock(return_value=None)
         return self
 
 
@@ -95,9 +106,10 @@ class TestChatEngine:
     ) -> None:
         # Arrange
         manager = Manager(
-            Arrangements(
-                Fixtures().with_langfuse_callback_handler()
-            ).add_langfuse_callback_handler_to_callback_manager()
+            Arrangements(Fixtures().with_langfuse_callback_handler())
+            .add_langfuse_callback_handler_to_callback_manager()
+            .on_input_guard_skip()
+            .on_output_guard_skip()
         )
         service = manager.get_service()
 
@@ -114,7 +126,10 @@ class TestChatEngine:
         manager = Manager(
             Arrangements(
                 Fixtures().with_langfuse_callback_handler().with_session_id()
-            ).add_langfuse_callback_handler_to_callback_manager()
+            )
+            .add_langfuse_callback_handler_to_callback_manager()
+            .on_input_guard_skip()
+            .on_output_guard_skip()
         )
         service = manager.get_service()
 
