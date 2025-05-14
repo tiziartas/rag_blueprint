@@ -1695,33 +1695,6 @@ wheels = [
 ]
 
 [[package]]
-name = "llama-index-llms-openai"
-version = "0.3.38"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "llama-index-core" },
-    { name = "openai" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/4d/bd/b0ceae2d5d697feb5d18a7402214cdad30bc20d8cbe1619e9e6355361ca5/llama_index_llms_openai-0.3.38.tar.gz", hash = "sha256:bcd1d5212bf7c948301958719a1df361be62b37b5620732e4c9ce804bc078b77", size = 22738 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/e1/1c185e22ca1fd1ac813d225be046c4223dbe2fdf64d90a6e86608e6d17ad/llama_index_llms_openai-0.3.38-py3-none-any.whl", hash = "sha256:d724b809d5e81e15cd1c3def65f023c4c74f2a097e542e5c002793ffbaa33a96", size = 23839 },
-]
-
-[[package]]
-name = "llama-index-llms-openai-like"
-version = "0.3.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "llama-index-core" },
-    { name = "llama-index-llms-openai" },
-    { name = "transformers" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/da/ec/de0f5a88e498e887b629e56d09df6580e2c7191efdf3159cb222f7cc871d/llama_index_llms_openai_like-0.3.4.tar.gz", hash = "sha256:6cb8d574d89c46b0bda07e7f9747b6428f70a7335606922b43187da99d96751d", size = 3829 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ca/f7/c919d769ba8edad0684266b2fd53b62389dadf8dcd1d8c1979d37c557854/llama_index_llms_openai_like-0.3.4-py3-none-any.whl", hash = "sha256:628fc6308d7a6da3e6b158fb1b94d627d7885bb541e5c46d97f156e9c4de9e14", size = 4281 },
-]
-
-[[package]]
 name = "llama-index-postprocessor-colbert-rerank"
 version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3883,8 +3856,6 @@ all = [
     { name = "llama-index-embeddings-openai" },
     { name = "llama-index-embeddings-voyageai" },
     { name = "llama-index-llms-litellm" },
-    { name = "llama-index-llms-openai" },
-    { name = "llama-index-llms-openai-like" },
     { name = "llama-index-postprocessor-colbert-rerank" },
     { name = "llama-index-vector-stores-chroma" },
     { name = "llama-index-vector-stores-postgres" },
@@ -3907,8 +3878,6 @@ augmentation = [
     { name = "langfuse" },
     { name = "llama-index-callbacks-langfuse" },
     { name = "llama-index-llms-litellm" },
-    { name = "llama-index-llms-openai" },
-    { name = "llama-index-llms-openai-like" },
     { name = "llama-index-postprocessor-colbert-rerank" },
 ]
 core = [
@@ -3955,8 +3924,6 @@ requires-dist = [
     { name = "llama-index-embeddings-openai", marker = "extra == 'embedding'", specifier = ">=0.3.1" },
     { name = "llama-index-embeddings-voyageai", marker = "extra == 'embedding'", specifier = ">=0.3.5" },
     { name = "llama-index-llms-litellm", marker = "extra == 'augmentation'", specifier = ">=0.4.2" },
-    { name = "llama-index-llms-openai", marker = "extra == 'augmentation'", specifier = ">=0.3.25" },
-    { name = "llama-index-llms-openai-like", marker = "extra == 'augmentation'", specifier = ">=0.3.4" },
     { name = "llama-index-postprocessor-colbert-rerank", marker = "extra == 'augmentation'", specifier = ">=0.3.0" },
     { name = "llama-index-vector-stores-chroma", marker = "extra == 'embedding'", specifier = ">=0.4.1" },
     { name = "llama-index-vector-stores-postgres", marker = "extra == 'embedding'", specifier = ">=0.4.2" },

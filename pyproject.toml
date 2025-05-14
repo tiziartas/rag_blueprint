@@ -47,8 +47,6 @@ augmentation = [
     "langfuse>=2.60.2",
     "llama-index-callbacks-langfuse>=0.3.0",
     "llama-index-llms-litellm>=0.4.2",
-    "llama-index-llms-openai>=0.3.25",
-    "llama-index-llms-openai-like>=0.3.4",
     "llama-index-postprocessor-colbert-rerank>=0.3.0",
 ]
 evaluation = ["ragas==0.1.14"]
