@@ -10,6 +10,7 @@ The RAG blueprint project is a Retrieval-Augmented Generation system that integr
 | [Confluence](https://www.atlassian.com/software/confluence?gclsrc=aw.ds&&campaign=19280571316&adgroup=144874483655&targetid=kwd-22737151&matchtype=e&network=g&device=c&device_model=&creative=665271020076&keyword=confluence&placement=&target=&ds_eid=700000001542923&ds_e1=GOOGLE&gad_source=1&gclid=CjwKCAjwp8--BhBREiwAj7og1-IRQKLqpRA6GsxWCxP79pA8N6llomLslpQ-rTMkvMwKIIdA1Zq3uBoCpjYQAvD_BwE) | Enterprise wiki and knowledge base integration |
 | [Notion](https://www.notion.com/) | Workspace and document management integration |
 | PDF | PDF document processing and text extraction |
+| Bundestag | Data source fetching speeches from [BundestagMine](https://bundestag-mine.de/api/documentation/index.html) |
 
 Check how to configure datasources [here](how_to/how_to_configure/#datasource-configuration).
 
@@ -27,8 +28,7 @@ Check how to configure embedding model [here](how_to/how_to_configure/#embedding
 
 | Model | Provider | Description |
 |-------|----------|-------------|
-|   *   |  [OpenAI](https://openai.com/)  | Language models provided by OpenAI |
-|   *   |  OpenAILike  | Self-hosted language models shared through OpenAI like API |
+|   *   | [LiteLLM](https://docs.litellm.ai/) | Availability of many LLMs via providers like **OpenAI**, **Google** or **Anthropic** as well as local LLMs |
 
 
 Check how to configure LLM [here](how_to/how_to_configure/#llm-configuration).

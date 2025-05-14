@@ -68,25 +68,22 @@ Each entry in `datasources` corresponds to a single source that will be sequenti
 
 ## LLM Configuration
 
-Currently, LLMs from these providers are supported:
+The system supports the following LLM providers:
 
 ```py
 class LLMProviderName(str, Enum):
-    OPENAI = "openai"
-    OPENAI_LIKE = "openai-like"
+    LITE_LLM = "lite_llm"
 ```
 
-`OpenAI` indicates the [OpenAI](https://openai.com/) provider, whereas `OPENAI_LIKE` indicates any LLM exposed through an API compatible with OpenAI's API, e.g., a self-hosted LLM exposed via [TabbyAPI](https://theroyallab.github.io/tabbyAPI/).
-
-Minimal setup requires the use of LLMs in augmentation and evaluation processes. To configure this, adjust the following JSON entries:
+`LITE_LLM` leverages the [LiteLLM](https://docs.litellm.ai/) service, providing a unified interface for cloud-hosted models (e.g., OpenAI, Google, Anthropic) and self-hosted LLMs. Minimal setup requires the use of LLMs in augmentation and evaluation processes. To configure this, adjust the following JSON entries:
 
 ```json
 {
     "augmentation": {
         "chat_engine": {
             "llm": {
-                "provider": "openai",
-                "name": "gpt-4o-mini",
+                "provider": "lite_llm",
+                "name": "gemini-2.0-flash-exp",
                 "max_tokens": 1024,
                 "max_retries": 3,
                 "context_window": 16384
@@ -95,8 +92,8 @@ Minimal setup requires the use of LLMs in augmentation and evaluation processes.
     },
     "evaluation": {
         "judge_llm": {
-            "provider": "openai",
-            "name": "gpt-4o-mini",
+            "provider": "lite_llm",
+            "name": "gemini-2.0-flash-exp",
             "max_tokens": 1024,
             "max_retries": 3,
             "context_window": 16384
@@ -105,7 +102,7 @@ Minimal setup requires the use of LLMs in augmentation and evaluation processes.
 }
 ```
 
-Providers' secrets must be added to the environment's secret file. The `provider` field must be one of the values from `LLMProviderName`, and the `name` field indicates the specific model exposed by the provider. To check configurable options for specific providers, visit `configuration.py` of an LLM.
+ The `provider` field must be one of the values from `LLMProviderName`, and the `name` field indicates the specific model exposed by the provider. To check configurable options for specific providers, visit `configuration.py` of an LLM.
 
 In the above case, augmentation and evaluation processes use the same LLM, which might be suboptimal. To change it, simply adjust the entry of one of these:
 
@@ -115,8 +112,8 @@ In the above case, augmentation and evaluation processes use the same LLM, which
         "augmentation": {
             "chat_engine": {
                 "llm": {
-                    "provider": "openai",
-                    "name": "gpt-4o-mini",
+                    "provider": "lite_llm",
+                    "name": "gemini-2.0-flash-exp",
                     "max_tokens": 1024,
                     "max_retries": 3,
                     "context_window": 16384
@@ -126,14 +123,45 @@ In the above case, augmentation and evaluation processes use the same LLM, which
         },
         "evaluation": {
             "judge_llm": {
-                "provider": "openai-like",  // another provider
-                "name": "my-llm",           // another llm
+                "provider": "lite_llm",
+                "name": "gpt-4o-mini",      // another llm
                 "max_tokens": 512           // different parameters
             }
         }
     }
 }
 ```
+
+### Secrets
+
+Model `gemini-2.0-flash-exp` doesn't require any authentication, so `api_key` for this model can be skipped. However, for models like `gpt-4o-mini` api key is required (in this case OpenAI api key). You can simply add it to your secrets file as follows:
+
+```sh
+RAG__LLMS__GPT_4O_MINI__API_KEY={your-api-key}
+```
+
+Or if your model would be `mistral-small-latest` add the following entry to the secrets file:
+
+```sh
+RAG__LLMS__MISTRAL_SMALL_LATEST__API_KEY={your-api-key}
+```
+
+The variable name includes the uppercased name of the model you are using, whereas all non-alphanumeric characters are replaced by underscores e.g. `gpt-3.5-turbo` -> `GPT_3_5_TURBO`.
+
+If you want to use your local model called for instance `my-llm`, which is exposed via openai-like API you can use the following configuration:
+
+```json
+"provider": "lite_llm",
+"name": "openai/my-llm",
+```
+
+And the secrets will look as follows:
+
+```
+RAG__LLMS__OPENAI_MY_LLM__API_KEY={your-api-key}
+```
+
+> **_Note_** You can use different API structure for your local LLMs, then just replace `openai/` prefix with corresponding provider.
 
 ## Embedding Model Configuration
 
