@@ -12,7 +12,7 @@ class LLMProviderName(str, Enum):
     Enumeration of supported language model providers.
     """
 
-    pass
+    LITE_LLM = "lite_llm"
 
 
 class LLMConfiguration(BaseConfigurationWithSecrets):
