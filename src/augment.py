@@ -55,6 +55,7 @@ async def start() -> None:
     cl.user_session.set("chat_engine", chat_engine)
 
     utils = ChainlitUtilsFactory.create(configuration.augmentation.chainlit)
+    await utils.get_disclaimer_message().send()
     await utils.get_welcome_message().send()
 
 
