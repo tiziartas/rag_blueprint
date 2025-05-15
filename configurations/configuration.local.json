@@ -34,7 +34,7 @@
             },
             "llm": {
                 "provider": "lite_llm",
-                "name": "gemini-2.0-flash-exp",
+                "name": "gpt-4o-mini",
                 "max_tokens": 1024,
                 "max_retries": 3,
                 "context_window": 16384
@@ -58,7 +58,7 @@
     "evaluation": {
         "judge_llm": {
             "provider": "lite_llm",
-            "name": "gemini-2.0-flash-exp",
+            "name": "gpt-4o-mini",
             "max_tokens": 1024,
             "max_retries": 3,
             "context_window": 16384
