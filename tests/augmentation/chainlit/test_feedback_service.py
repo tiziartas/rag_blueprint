@@ -14,15 +14,12 @@ from langfuse.api.resources.commons.types.observations_view import (
 from langfuse.api.resources.commons.types.trace_with_details import (
     TraceWithDetails,
 )
-from langfuse.client import FetchObservationsResponse, FetchTracesResponse
+from langfuse.client import FetchTracesResponse
 
 from augmentation.bootstrap.configuration.langfuse_configuration import (
     LangfuseDatasetConfiguration,
 )
 from augmentation.chainlit.feedback_service import ChainlitFeedbackService
-from augmentation.components.llms.core.base_output_extractor import (
-    BaseLlamaindexLLMOutputExtractor,
-)
 from augmentation.langfuse.dataset_service import LangfuseDatasetService
 
 
@@ -32,7 +29,9 @@ class Fixtures:
         self.message_id: str = None
         self.feedback: Feedback = None
         self.trace: TraceWithDetails = None
-        self.observation: ObservationsView = None
+        self.retrieve_observation: ObservationsView = None
+        self.template_observation: ObservationsView = None
+        self.output_observation: ObservationsView = None
 
     def with_feedback(self, value: int) -> "Fixtures":
         self.message_id = str(uuid4())
@@ -60,12 +59,23 @@ class Fixtures:
         }
         return self
 
-    def with_observation(self) -> "Fixtures":
-        self.observation = Mock(spec=ObservationsView)
-        self.observation.id = str(uuid4())
-        self.observation.input = "input"
-        self.observation.output = {"nodes": []}
-        self.observation.createdAt = "2021-01-01T00:00:00.000Z"
+    def with_retrieve_observation(self) -> "Fixtures":
+        self.retrieve_observation = Mock(spec=ObservationsView)
+        self.retrieve_observation.id = str(uuid4())
+        self.retrieve_observation.output = {"nodes": []}
+        return self
+
+    def with_template_observation(self) -> "Fixtures":
+        self.template_observation = Mock(spec=ObservationsView)
+        self.template_observation.id = str(uuid4())
+        self.template_observation.input = "input"
+        return self
+
+    def with_output_observation(self) -> "Fixtures":
+        self.output_observation = Mock(spec=ObservationsView)
+        self.output_observation.id = str(uuid4())
+        self.output_observation.output = {"blocks": [{"text": "output"}]}
+        self.output_observation.model = "llm"
         return self
 
 
@@ -83,13 +93,11 @@ class Arrangements:
         )
         self.feedback_dataset.name = "feedback_dataset"
         self.chainlit_tag_format: str = "chainlit_tag_format: {message_id}"
-        self.output_extractor = Mock(spec=BaseLlamaindexLLMOutputExtractor)
         self.service = ChainlitFeedbackService(
             langfuse_dataset_service=self.langfuse_dataset_service,
             langfuse_client=self.langfuse_client,
             feedback_dataset=self.feedback_dataset,
             chainlit_tag_format=self.chainlit_tag_format,
-            output_extractor=self.output_extractor,
         )
 
     def on_fetch_traces_return_no_traces(self) -> "Arrangements":
@@ -104,11 +112,27 @@ class Arrangements:
         )
         return self
 
-    def on_fetch_observation_return_observation(self) -> "Arrangements":
-        self.langfuse_client.fetch_observations.return_value = (
-            FetchObservationsResponse(
-                data=[self.fixtures.observation], meta=None
-            )
+    def on_fetch_last_retrieve_observation_return_observation(
+        self,
+    ) -> "Arrangements":
+        self.service._fetch_last_retrieve_observation = Mock(
+            return_value=self.fixtures.retrieve_observation
+        )
+        return self
+
+    def on_fetch_last_template_observation_return_observation(
+        self,
+    ) -> "Arrangements":
+        self.service._fetch_last_templating_observation = Mock(
+            return_value=self.fixtures.template_observation
+        )
+        return self
+
+    def on_fetch_last_output_observation_return_observation(
+        self,
+    ) -> "Arrangements":
+        self.service._fetch_pre_last_generation_observation = Mock(
+            return_value=self.fixtures.output_observation
         )
         return self
 
@@ -220,17 +244,28 @@ class TestChainlitFeedbackService:
     async def test_given_positive_feedback_when_upsert_then_feedback_saved_in_dataset(
         self,
     ):
+
         # Arrange
         manager = Manager(
             Arrangements(
                 Fixtures()
                 .with_positive_feedback()
                 .with_trace()
-                .with_observation()
+                .with_retrieve_observation()
+                .with_template_observation()
+                .with_output_observation()
             )
             .on_fetch_traces_return_trace()
-            .on_fetch_observation_return_observation()
+            .on_fetch_last_retrieve_observation_return_observation()
+            .on_fetch_last_template_observation_return_observation()
+            .on_fetch_last_output_observation_return_observation()
         )
+        # arrangements.langfuse_client.fetch_observations.side_effect = [
+        #     FetchObservationsResponse(data=[obs], meta=None),
+        #     FetchObservationsResponse(data=[obs], meta=None),
+        #     FetchObservationsResponse(data=[obs, obs], meta=None),
+        # ]
+        # manager = Manager(arrangements)
         service = manager.get_service()
 
         # Act

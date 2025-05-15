@@ -1560,6 +1560,28 @@ wheels = [
 ]
 
 [[package]]
+name = "litellm"
+version = "1.69.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "click" },
+    { name = "httpx" },
+    { name = "importlib-metadata" },
+    { name = "jinja2" },
+    { name = "jsonschema" },
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "tiktoken" },
+    { name = "tokenizers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e2/d2/8e51fcf48e4a339778df0587fd66fc954909c2733abfbde19d870a0fc5ae/litellm-1.69.1.tar.gz", hash = "sha256:96886aec050b93c76da7d45b3d633c287cfedf18de046542c3c681c386f56136", size = 7381127 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/78/ce/2016bd46dc3d73d138a6ae2893277d2778100c21012688c0bdc7488e445b/litellm-1.69.1-py3-none-any.whl", hash = "sha256:43eb76d16d2c19881856740491adc43474b4a1e7cd405e65edc42e5c8ccfb65d", size = 7727494 },
+]
+
+[[package]]
 name = "literalai"
 version = "0.1.201"
 source = { registry = "https://pypi.org/simple" }
@@ -1660,30 +1682,16 @@ wheels = [
 ]
 
 [[package]]
-name = "llama-index-llms-openai"
-version = "0.3.38"
+name = "llama-index-llms-litellm"
+version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "litellm" },
     { name = "llama-index-core" },
-    { name = "openai" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4d/bd/b0ceae2d5d697feb5d18a7402214cdad30bc20d8cbe1619e9e6355361ca5/llama_index_llms_openai-0.3.38.tar.gz", hash = "sha256:bcd1d5212bf7c948301958719a1df361be62b37b5620732e4c9ce804bc078b77", size = 22738 }
+sdist = { url = "https://files.pythonhosted.org/packages/d1/51/c041e8f59f484580445aac56f268086be434b8105b09e2ea3713070f6d19/llama_index_llms_litellm-0.4.2.tar.gz", hash = "sha256:8edd9119abda6a8976916b28dc476842e5c644d67479e2716328bc3ca8983bdc", size = 10463 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/e1/1c185e22ca1fd1ac813d225be046c4223dbe2fdf64d90a6e86608e6d17ad/llama_index_llms_openai-0.3.38-py3-none-any.whl", hash = "sha256:d724b809d5e81e15cd1c3def65f023c4c74f2a097e542e5c002793ffbaa33a96", size = 23839 },
-]
-
-[[package]]
-name = "llama-index-llms-openai-like"
-version = "0.3.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "llama-index-core" },
-    { name = "llama-index-llms-openai" },
-    { name = "transformers" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/da/ec/de0f5a88e498e887b629e56d09df6580e2c7191efdf3159cb222f7cc871d/llama_index_llms_openai_like-0.3.4.tar.gz", hash = "sha256:6cb8d574d89c46b0bda07e7f9747b6428f70a7335606922b43187da99d96751d", size = 3829 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ca/f7/c919d769ba8edad0684266b2fd53b62389dadf8dcd1d8c1979d37c557854/llama_index_llms_openai_like-0.3.4-py3-none-any.whl", hash = "sha256:628fc6308d7a6da3e6b158fb1b94d627d7885bb541e5c46d97f156e9c4de9e14", size = 4281 },
+    { url = "https://files.pythonhosted.org/packages/e9/12/e90f79f17865d0981e4383b5302be245448a68b561c1dbec52b0e060f993/llama_index_llms_litellm-0.4.2-py3-none-any.whl", hash = "sha256:d51c9c72fbe6945ee7f062dfe1acbcc3f34d7fc307dd0662856697057971e204", size = 10732 },
 ]
 
 [[package]]
@@ -2371,7 +2379,7 @@ wheels = [
 
 [[package]]
 name = "openai"
-version = "1.77.0"
+version = "1.75.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -2383,9 +2391,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/c0/ea2e9a78bf88404b97e7b708f0823b4699ab2ee3f5564425b8531a890a43/openai-1.77.0.tar.gz", hash = "sha256:897969f927f0068b8091b4b041d1f8175bcf124f7ea31bab418bf720971223bc", size = 435778 }
+sdist = { url = "https://files.pythonhosted.org/packages/99/b1/318f5d4c482f19c5fcbcde190801bfaaaec23413cda0b88a29f6897448ff/openai-1.75.0.tar.gz", hash = "sha256:fb3ea907efbdb1bcfd0c44507ad9c961afd7dce3147292b54505ecfd17be8fd1", size = 429492 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/90/58/37ae3ca75936b824a0a5ca30491c968192007857319d6836764b548b9d9b/openai-1.77.0-py3-none-any.whl", hash = "sha256:07706e91eb71631234996989a8ea991d5ee56f0744ef694c961e0824d4f39218", size = 662031 },
+    { url = "https://files.pythonhosted.org/packages/80/9a/f34f163294345f123673ed03e77c33dee2534f3ac1f9d18120384457304d/openai-1.75.0-py3-none-any.whl", hash = "sha256:fe6f932d2ded3b429ff67cc9ad118c71327db32eb9d32dd723de3acfca337125", size = 646972 },
 ]
 
 [[package]]
@@ -3847,8 +3855,7 @@ all = [
     { name = "llama-index-embeddings-huggingface" },
     { name = "llama-index-embeddings-openai" },
     { name = "llama-index-embeddings-voyageai" },
-    { name = "llama-index-llms-openai" },
-    { name = "llama-index-llms-openai-like" },
+    { name = "llama-index-llms-litellm" },
     { name = "llama-index-postprocessor-colbert-rerank" },
     { name = "llama-index-vector-stores-chroma" },
     { name = "llama-index-vector-stores-postgres" },
@@ -3870,8 +3877,7 @@ augmentation = [
     { name = "chainlit" },
     { name = "langfuse" },
     { name = "llama-index-callbacks-langfuse" },
-    { name = "llama-index-llms-openai" },
-    { name = "llama-index-llms-openai-like" },
+    { name = "llama-index-llms-litellm" },
     { name = "llama-index-postprocessor-colbert-rerank" },
 ]
 core = [
@@ -3917,8 +3923,7 @@ requires-dist = [
     { name = "llama-index-embeddings-huggingface", marker = "extra == 'embedding'", specifier = ">=0.5.2" },
     { name = "llama-index-embeddings-openai", marker = "extra == 'embedding'", specifier = ">=0.3.1" },
     { name = "llama-index-embeddings-voyageai", marker = "extra == 'embedding'", specifier = ">=0.3.5" },
-    { name = "llama-index-llms-openai", marker = "extra == 'augmentation'", specifier = ">=0.3.25" },
-    { name = "llama-index-llms-openai-like", marker = "extra == 'augmentation'", specifier = ">=0.3.4" },
+    { name = "llama-index-llms-litellm", marker = "extra == 'augmentation'", specifier = ">=0.4.2" },
     { name = "llama-index-postprocessor-colbert-rerank", marker = "extra == 'augmentation'", specifier = ">=0.3.0" },
     { name = "llama-index-vector-stores-chroma", marker = "extra == 'embedding'", specifier = ">=0.4.1" },
     { name = "llama-index-vector-stores-postgres", marker = "extra == 'embedding'", specifier = ">=0.4.2" },
