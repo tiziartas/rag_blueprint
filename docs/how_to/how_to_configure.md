@@ -134,7 +134,7 @@ In the above case, augmentation and evaluation processes use the same LLM, which
 
 ### Secrets
 
-Each model requiers api key. For the above LLMs add following secrets:
+Each model requires api key. For the above LLMs add following secrets:
 
 ```sh
 RAG__LLMS__GEMINI_2_0_FLASH_EXP_API_KEY={your-gemini-api-key}
