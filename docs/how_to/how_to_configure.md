@@ -134,16 +134,11 @@ In the above case, augmentation and evaluation processes use the same LLM, which
 
 ### Secrets
 
-Model `gemini-2.0-flash-exp` doesn't require any authentication, so `api_key` for this model can be skipped. However, for models like `gpt-4o-mini` api key is required (in this case OpenAI api key). You can simply add it to your secrets file as follows:
+Each model requiers api key. For the above LLMs add following secrets:
 
 ```sh
-RAG__LLMS__GPT_4O_MINI__API_KEY={your-api-key}
-```
-
-Or if your model would be `mistral-small-latest` add the following entry to the secrets file:
-
-```sh
-RAG__LLMS__MISTRAL_SMALL_LATEST__API_KEY={your-api-key}
+RAG__LLMS__GEMINI_2_0_FLASH_EXP_API_KEY={your-gemini-api-key}
+RAG__LLMS__GPT_4O_MINI__API_KEY={your-openai-api-key}
 ```
 
 The variable name includes the uppercased name of the model you are using, whereas all non-alphanumeric characters are replaced by underscores e.g. `gpt-3.5-turbo` -> `GPT_3_5_TURBO`.
