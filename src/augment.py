@@ -17,6 +17,9 @@ from augmentation.chainlit.service import (
 )
 from augmentation.chainlit.utils import ChainlitUtilsFactory
 from augmentation.components.chat_engines.registry import ChatEngineRegistry
+from core.logger import LoggerConfiguration
+
+logger = LoggerConfiguration.get_logger(__name__)
 
 
 @cl.cache
@@ -67,19 +70,26 @@ async def main(user_message: cl.Message) -> None:
     Args:
         user_message: Message received from user
     """
-    chat_engine = cl.user_session.get("chat_engine")
-    assistant_message = cl.Message(content="", author="Assistant")
-    response = await cl.make_async(chat_engine.stream_chat)(
-        message=user_message.content,
-        chainlit_message_id=assistant_message.parent_id,
-    )
-    for token in response.response_gen:
-        await assistant_message.stream_token(token)
+    try:
+        chat_engine = cl.user_session.get("chat_engine")
+        assistant_message = cl.Message(content="", author="Assistant")
+        response = await cl.make_async(chat_engine.stream_chat)(
+            message=user_message.content,
+            chainlit_message_id=assistant_message.parent_id,
+        )
+        for token in response.response_gen:
+            await assistant_message.stream_token(token)
 
-    configuration = get_cached_initializer().get_configuration()
-    utils = ChainlitUtilsFactory.create(configuration.augmentation.chainlit)
-    utils.add_references(assistant_message, response)
-    await assistant_message.send()
+        configuration = get_cached_initializer().get_configuration()
+        utils = ChainlitUtilsFactory.create(configuration.augmentation.chainlit)
+        utils.add_references(assistant_message, response)
+        await assistant_message.send()
+    except Exception as e:
+        # It is imprecise to catch all exceptions, but llamaindex doesn't provide unified RateLimitError
+        logger.error(f"Error in main: {e}")
+        await cl.ErrorMessage(
+            content="You have reached the request rate limit. Please try again later.",
+        ).send()
 
 
 if __name__ == "__main__":
