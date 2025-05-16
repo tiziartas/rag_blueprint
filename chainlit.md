@@ -8,3 +8,5 @@ Whether you’re a home brewer, a beer aficionado or planning a trip to Bavaria,
 - Explore the history and specialty of Hallertau hops, Weissbier, Dunkel and more
 - Get tasting profiles and food pairing recommendations
 - Find nearby breweries, opening hours and flagship brews
+
+[Placeholder for your imprint] • [Placeholder for your privacy policy]
