@@ -1,6 +1,6 @@
 from typing import List, Type
 
-from chainlit import Message
+from chainlit import Message, Text
 from llama_index.core.base.response.schema import StreamingResponse
 from llama_index.core.schema import NodeWithScore
 
@@ -29,6 +29,27 @@ class ChainlitUtils:
                                                   like welcome message.
         """
         self.configuration = configuration
+
+    def get_disclaimer_message(self) -> Message:
+        """Create and return a disclaimer message for the chat interface.
+
+        Creates a Message object with content from the configuration's disclaimer_text
+        to inform users about the nature of the AI-generated content.
+
+        Returns:
+            Message: A chainlit Message object with the Assistant as author
+                    and the disclaimer message as content.
+        """
+        return Message(
+            author="System",
+            content="",
+            elements=[
+                Text(
+                    name=self.configuration.disclaimer_title,
+                    content=self.configuration.disclaimer_text,
+                )
+            ],
+        )
 
     def get_welcome_message(self) -> Message:
         """Create and return a welcome message for the chat interface.

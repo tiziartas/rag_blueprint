@@ -1,15 +1,12 @@
-# RAG System Chat UI 🚀🤖
+# Bavarian Beer RAG System Chat UI 🍻🤖
 
-Welcome to our RAG System Chat UI! This user-friendly interface is designed to help you interact with our FELD M's knowledge base.
+Welcome to the Bavarian Beer RAG System Chat UI!
+Tap into an extensive knowledge base of Bavarian breweries, beer styles, tasting notes and pairing suggestions—all in real time.
 
-## Getting Started 🚀
+## 🎯 Use Case: Discover Bavarian Beer Culture
+Whether you’re a home brewer, a beer aficionado or planning a trip to Bavaria, this RAG-powered chat helps you:
+- Explore the history and specialty of Hallertau hops, Weissbier, Dunkel and more
+- Get tasting profiles and food pairing recommendations
+- Find nearby breweries, opening hours and flagship brews
 
-To start a new conversation, simply type your question or statement into the chat box at the bottom of the screen and press enter. The RAG system will respond with the most relevant information from our knowledge base.
-
-## Features 🌟
-
-- **Real-time Responses:** Get instant answers to your queries.
-- **User-friendly Interface:** Easy to navigate and use.
-- **Knowledge Base Access:** Direct access to our comprehensive company knowledge base.
-
-Enjoy exploring our RAG System Chat UI! Happy chatting! 💻😊
+[Placeholder for your imprint] • [Placeholder for your privacy policy]
