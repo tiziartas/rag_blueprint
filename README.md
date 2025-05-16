@@ -29,7 +29,7 @@ It comes with built-in monitoring and observability tools for better troubleshoo
 ---
 
 ### Data Sources
-[Notion](https://developers.notion.com/) • [Confluence](https://developer.atlassian.com/cloud/confluence/rest/v2/intro/#about) • PDF files
+[Notion](https://developers.notion.com/) • [Confluence](https://developer.atlassian.com/cloud/confluence/rest/v2/intro/#about) • PDF files • [BundestagMine](https://bundestag-mine.de/api/documentation/index.html)
 
 ---
 
@@ -39,7 +39,7 @@ It comes with built-in monitoring and observability tools for better troubleshoo
 ---
 
 ### Language Models
-[OpenAI](https://openai.com/) • Any [OpenAI](https://openai.com/) API compatible models
+[LiteLLM](https://docs.litellm.ai/) - Availability of many LLMs via providers like **OpenAI**, **Google** or **Anthropic** as well as local LLMs
 
 ---
 
