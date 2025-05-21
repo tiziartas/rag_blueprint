@@ -30,6 +30,11 @@ def get_cached_initializer() -> AugmentationInitializer:
     return AugmentationInitializer()
 
 
+# This is a workaround to initialize the service before the first user entry.
+# Thanks to that the first user won't need to wait long for the app to load.
+get_cached_initializer()
+
+
 @cl.data_layer
 def get_data_layer() -> ChainlitService:
     """
