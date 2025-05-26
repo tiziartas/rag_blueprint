@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Optional, Type
+from typing import Any, List, Type
 
 from pydantic import Field, ValidationInfo, field_validator
 
@@ -61,8 +61,8 @@ class BaseChatEngineConfiguration(BaseConfiguration):
     including retriever, llm, and postprocessor components.
     """
 
-    guardrails: Optional[Any] = Field(
-        None,
+    guardrails: Any = Field(
+        ...,
         description="Optional guardrails configuration for the chat engine.",
     )
     retriever: Any = Field(
