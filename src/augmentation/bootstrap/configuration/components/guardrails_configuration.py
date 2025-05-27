@@ -6,7 +6,7 @@ from pydantic import Field, ValidationInfo, field_validator
 from augmentation.bootstrap.configuration.components.llm_configuration import (
     LLMConfigurationRegistry,
 )
-from core.base_configuration import BaseConfigurationWithSecrets
+from core.base_configuration import BaseConfiguration
 from core.base_factory import ConfigurationRegistry
 
 
@@ -18,7 +18,7 @@ class GuardrailsName(str, Enum):
     BASIC = "basic"
 
 
-class GuardrailsConfiguration(BaseConfigurationWithSecrets):
+class GuardrailsConfiguration(BaseConfiguration):
     """
     Configuration settings for guardrails.
 
