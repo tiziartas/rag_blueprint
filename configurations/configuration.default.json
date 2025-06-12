@@ -28,6 +28,15 @@
     "augmentation": {
         "chat_engine": {
             "name": "langfuse",
+            "guardrails": {
+                "llm": {
+                    "provider": "lite_llm",
+                    "name": "gpt-4o-mini",
+                    "max_tokens": 1024,
+                    "max_retries": 3,
+                    "context_window": 16384
+                }
+            },
             "retriever": {
                 "name": "basic",
                 "similarity_top_k": 5
