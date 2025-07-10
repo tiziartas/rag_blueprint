@@ -73,7 +73,13 @@ class BundestagMineClient(APIClient):
             ResponseParseError: if HTTP status is not OK or unexpected JSON structure.
         """
         url = f"{self.BASE_URL}/{path.lstrip('/')}"
-        resp = self.get(url)
+
+        try:
+            resp = self.get(url)
+        except Exception as e:
+            self.logger.warning(f"Failed to fetch speeches for {url}: {e}")
+            return None
+
         try:
             resp.raise_for_status()
         except Exception as e:
