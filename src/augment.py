@@ -22,17 +22,16 @@ from core.logger import LoggerConfiguration
 logger = LoggerConfiguration.get_logger(__name__)
 
 
-@cl.cache
-def get_cached_initializer() -> AugmentationInitializer:
+@cl.on_app_startup
+async def app_startup() -> None:
     """
-    Initialize the augmentation process and cache it the initializer.
+    Initialize the application on startup.
+    Sets up the augmentation initializer and configuration, and starts the scheduler.
     """
-    return AugmentationInitializer()
-
-
-# This is a workaround to initialize the service before the first user entry.
-# Thanks to that the first user won't need to wait long for the app to load.
-get_cached_initializer()
+    global initializer, configuration
+    initializer = AugmentationInitializer()
+    configuration = initializer.get_configuration()
+    initializer.get_scheduler().start()
 
 
 @cl.data_layer
@@ -43,7 +42,6 @@ def get_data_layer() -> ChainlitService:
     Returns:
         ChainlitService: The custom service for data layer.
     """
-    configuration = get_cached_initializer().get_configuration()
     return ChainlitServiceFactory.create(configuration.augmentation)
 
 
@@ -53,9 +51,6 @@ async def start() -> None:
     Initialize chat session with chat engine.
     Sets up session-specific chat engine and displays welcome message.
     """
-    initializer = get_cached_initializer()
-    configuration = initializer.get_configuration()
-
     chat_engine = ChatEngineRegistry.get(
         configuration.augmentation.chat_engine.name
     ).create(configuration)
@@ -85,7 +80,6 @@ async def main(user_message: cl.Message) -> None:
         for token in response.response_gen:
             await assistant_message.stream_token(token)
 
-        configuration = get_cached_initializer().get_configuration()
         utils = ChainlitUtilsFactory.create(configuration.augmentation.chainlit)
         utils.add_references(assistant_message, response)
         await assistant_message.send()
@@ -95,6 +89,19 @@ async def main(user_message: cl.Message) -> None:
         await cl.ErrorMessage(
             content="You have reached the request rate limit. Please try again later.",
         ).send()
+
+
+@cl.on_app_shutdown
+async def app_shutdown() -> None:
+    """
+    Clean up resources on application shutdown.
+    Stops the scheduler if it is running.
+    """
+    try:
+        initializer.get_scheduler().stop()
+        logger.info("Scheduler stopped successfully")
+    except Exception as e:
+        logger.warning(f"Failed to stop scheduler: {e}")
 
 
 if __name__ == "__main__":
