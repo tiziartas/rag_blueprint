@@ -1,6 +1,8 @@
 import logging
 from typing import Type
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from llama_index.core.chat_engine.condense_plus_context import (
     DEFAULT_CONDENSE_PROMPT_TEMPLATE,
     DEFAULT_CONTEXT_PROMPT_TEMPLATE,
@@ -18,6 +20,7 @@ from embedding.bootstrap.initializer import (
     EmbeddingInitializer,
     EmbeddingPackageLoader,
 )
+from jobs.queries_retention import LangfuseRenetionJobFactory
 
 DEFAULT_INPUT_GUARDRAIL_PROMPT_TEMPLATE = """
 Your task is to check if the user message below complies with the company policy for talking with the company bot.
@@ -56,6 +59,58 @@ Your task is to check if the LLM output below complies with the company policy f
   LLM output: {}
   Answer:
 """
+
+
+class AugmentationScheduler:
+
+    def __init__(
+        self,
+        configuration: AugmentationConfiguration,
+        logger: logging.Logger = LoggerConfiguration.get_logger(__name__),
+    ):
+        """
+        Args:
+            configuration (AugmentationConfiguration): The configuration object for the augmentation process.
+            logger: Logger instance for logging information. Defaults to a logger
+                   configured with the current module name.
+        """
+        self.logger = logger
+        self.configuration = configuration
+
+        self.scheduler = AsyncIOScheduler()
+
+    def start(self) -> None:
+        """Start the scheduler and schedule the daily queries retention job."""
+        langfuse_configuration = self.configuration.augmentation.langfuse
+        queries_retention_job = LangfuseRenetionJobFactory.create(
+            langfuse_configuration
+        )
+
+        try:
+            self.scheduler.add_job(
+                queries_retention_job.run,
+                CronTrigger.from_crontab(
+                    langfuse_configuration.retention_job.crontab
+                ),
+                id=langfuse_configuration.retention_job.name,
+                replace_existing=True,
+            )
+            self.logger.info(
+                "Daily queries retention job scheduled successfully"
+            )
+
+            self.scheduler.start()
+            self.logger.info("Scheduler started successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize scheduler: {e}")
+
+    def stop(self) -> None:
+        """Stop the scheduler if it is running."""
+        if self.scheduler.running:
+            self.scheduler.shutdown()
+            self.logger.info("Scheduler stopped successfully")
+        else:
+            self.logger.warning("Scheduler was not running")
 
 
 class AugmentationPackageLoader(EmbeddingPackageLoader):
@@ -126,7 +181,19 @@ class AugmentationInitializer(EmbeddingInitializer):
             configuration_class=configuration_class,
             package_loader=package_loader,
         )
+        self.scheduler = AugmentationScheduler(
+            configuration=self.get_configuration(),
+            logger=LoggerConfiguration.get_logger(__name__),
+        )
         self._initialize_default_prompt()
+
+    def get_scheduler(self) -> AugmentationScheduler:
+        """Get the scheduler instance for managing scheduled tasks.
+
+        Returns:
+            AsyncIOScheduler: The scheduler instance used for scheduling jobs.
+        """
+        return self.scheduler
 
     def _initialize_default_prompt(self) -> None:
         """

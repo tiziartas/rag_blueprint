@@ -93,6 +93,21 @@ class LangfuseDatasetsConfiguration(BaseConfiguration):
     )
 
 
+class LangfuseRetentionJobConfiguration(BaseConfiguration):
+    name: str = Field(
+        "langfuse_traces_retention_job",
+        description="Unique identifier for the Langfuse retention job",
+    )
+    crontab: str = Field(
+        "0 0 * * *",
+        description="Cron expression defining the schedule for running the Langfuse retention job",
+    )
+    retention_days: int = Field(
+        30,
+        description="Number of days to retain traces in the Langfuse platform before automatic deletion",
+    )
+
+
 class LangfuseConfiguration(BaseConfigurationWithSecrets):
     """Main configuration for the Langfuse integration.
 
@@ -144,6 +159,10 @@ class LangfuseConfiguration(BaseConfigurationWithSecrets):
     chainlit_tag_format: str = Field(
         "chainlit_message_id: {message_id}",
         description="Template string for generating tags that link Chainlit messages to Langfuse traces",
+    )
+    retention_job: LangfuseRetentionJobConfiguration = Field(
+        description="Configuration for the Langfuse retention job that manages trace data lifecycle",
+        default_factory=LangfuseRetentionJobConfiguration,
     )
     secrets: Secrets = Field(
         None,
