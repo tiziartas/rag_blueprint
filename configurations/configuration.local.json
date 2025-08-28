@@ -2,9 +2,8 @@
     "extraction": {
         "datasources": [
             {
-                "name": "pdf",
-                "export_limit": 5,
-                "base_path": "data/bavarian_beer"
+                "name": "hackernews",
+                "export_limit": 10
             }
         ]
     },
