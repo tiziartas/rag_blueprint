@@ -12,7 +12,7 @@ class ChainlitConfiguration(BaseConfiguration):
 
     port: int = Field(8000, description="Port to run the chainlit service on.")
     disclaimer_title: str = Field(
-        "Bavarian Beer Chat",
+        "Hacker News Chat",
         description="Title of the disclaimer message to be displayed.",
     )
     disclaimer_text: str = Field(
@@ -20,6 +20,6 @@ class ChainlitConfiguration(BaseConfiguration):
         description="Disclaimer text to be displayed to users.",
     )
     welcome_message: str = Field(
-        "Welcome to our Bavarian Beer Chat! 🍻 We're here to guide you through the rich tapestry of Bavarian beer culture. Whether you're curious about traditional brews, local beer festivals, or the history behind Bavaria's renowned beer purity law, you've come to the right place. Type your question below, and let's embark on this flavorful journey together. Prost!",
+        "Welcome Pirate! You can retrive information from the top daily stories of Hacker News, Type your question below",
         description="Welcome message to display to users when they start a conversation.",
     )
